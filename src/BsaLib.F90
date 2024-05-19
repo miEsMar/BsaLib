@@ -265,7 +265,7 @@ module BsaLib
          ! </span>
 
          integer(int32), value :: id
-            !! Built-in POlicy ID
+            !! Built-in Policy ID
          integer(int32), value :: i_bfm
             !! BFM i-direction validation factor
          integer(int32), value :: j_bfm
@@ -310,7 +310,7 @@ module BsaLib
          ! The width of the background (i.e. <i>quasi-static</i>) peak is equal to:
          ! $$ W_{\mathrm{bkg}} = \frac{\overline{U}}{L} \quad \mathrm{[Hz]}$$
          ! where \(\overline{U}\) is the mean wind speed, \(L\) the turbulence length scale.
-         ! In a 3D-spatial turbulence, there in total 9 turbulence scales (lengths), 
+         ! In a 3D-spatial turbulence, there are in total 9 turbulence scales (lengths), 
          ! organised in a \(3 \times 3\) matrix of turbulence scales:
          ! $$ \mathbf{L} = 
          !    \begin{Bmatrix}
@@ -462,7 +462,7 @@ module BsaLib
          !     The internal <i>vectorised</i> implementation is used (DEFAULT).
          !     This is indeed the preferred option in terms of speed.
          !     There is however a limitation of this approach:
-         !     since it requires a considerable amount of alocated memory, 
+         !     since it requires a considerable amount of allocated memory, 
          !     and considered the limit of memory that is requirable to the runtime 
          !     (before going to unoptimised mechanisms, such swap partition)
          !     if a given limit (\(\approx 8\) Gb) is exceeded, the `BsaLib` runtime 
@@ -471,7 +471,7 @@ module BsaLib
          !  <li> <code> BSA_CLASSIC_MODE_SCALAR </code> 
          !     The internal <i>scalar</i> implementation is used.
          !     While this implementation is slower than its vectorised counterpart, 
-         !     it is certainly the one to be used to limit memory the footprint.
+         !     it is certainly the one to be used to limit the memory footprint.
          !     Also, for very big cases, the `BsaLib` runtime might automatically switch 
          !     to this implementation is too much memory allocation is required.
          !   </li>

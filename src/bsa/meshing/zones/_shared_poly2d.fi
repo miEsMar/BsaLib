@@ -423,7 +423,7 @@ __mod_sub_compute subroutine __sub_name_compute(this)
 
       ! eventually, update zone with max N of points
       if (zNp > msh_max_zone_NPts) msh_max_zone_NPts = zNp
-      
+
 # ifdef _BSA_M3MF_ONLY_PREMESH
       if (allocated(intg)) deallocate(intg)
 # endif
