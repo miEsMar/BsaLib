@@ -18,6 +18,7 @@ module BsaLib_MPolicy
    use BsaLib_CONSTANTS, only: int32
    implicit none (type, external)
    private
+   public :: MPolicy_create_default_set
 
    ! enum, bind(C)
    !    enumerator :: MPolicy_NULL  = 0
@@ -69,19 +70,9 @@ module BsaLib_MPolicy
    end type MPolicy_t
 
 
+
    !> Array of built-in policies.
-   type(MPolicy_t), dimension(MPolicy_NULL:MPolicy_PAD_ZONE_EXTERN), public :: builtin_policies_ = [ &
-      MPolicy_t(MPolicy_NULL),            &
-      MPolicy_t(MPolicy_DEF),             &
-      MPolicy_t(MPolicy_CONST),           &
-      MPolicy_t(MPolicy_PRE_PEAK_1),      &
-      MPolicy_t(MPolicy_PRE_PEAK_2),      &
-      MPolicy_t(MPolicy_PEAK),            &
-      MPolicy_t(MPolicy_CREST),           &
-      MPolicy_t(MPolicy_BASIN),           &
-      MPolicy_t(MPolicy_PAD_ZONE_INTERN), &
-      MPolicy_t(MPolicy_PAD_ZONE_EXTERN)  &
-   ]
+   type(MPolicy_t), dimension(MPolicy_NULL:MPolicy_PAD_ZONE_EXTERN), public :: builtin_policies_
 
 
 
@@ -107,6 +98,24 @@ module BsaLib_MPolicy
 
 
 contains
+
+
+
+   subroutine MPolicy_create_default_set()
+      builtin_policies_(MPolicy_NULL:MPolicy_PAD_ZONE_EXTERN) = &
+         [ &
+            MPolicy_t(MPolicy_NULL),            &
+            MPolicy_t(MPolicy_DEF),             &
+            MPolicy_t(MPolicy_CONST),           &
+            MPolicy_t(MPolicy_PRE_PEAK_1),      &
+            MPolicy_t(MPolicy_PRE_PEAK_2),      &
+            MPolicy_t(MPolicy_PEAK),            &
+            MPolicy_t(MPolicy_CREST),           &
+            MPolicy_t(MPolicy_BASIN),           &
+            MPolicy_t(MPolicy_PAD_ZONE_INTERN), &
+            MPolicy_t(MPolicy_PAD_ZONE_EXTERN)  &
+         ]
+   end subroutine
 
 
 

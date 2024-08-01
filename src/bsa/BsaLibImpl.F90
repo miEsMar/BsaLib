@@ -59,11 +59,16 @@ contains
 
 
    module subroutine bsa_Init()
+      use BsaLib_MPolicy,   only: MPolicy_create_default_set
       integer(int32) :: istat
       character(len = 256) :: emsg
 
 
       call bsa_openFileHandles_()
+
+      !! Fixes non-standard use of "non-intrinsic generic function reference"
+      !! in module variable initialisation.
+      call MPolicy_create_default_set()
 
       if (.not. allocated(settings)) then
          allocate(settings, stat=istat, errmsg=emsg)
