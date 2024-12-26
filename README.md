@@ -1,4 +1,4 @@
-# Brief Description
+
 -------------------
 
 `BsaLib`, a Modern Fortran Library for the Bispectral Stochastic Analysis 
@@ -287,6 +287,7 @@ Currently supported general settings (in order):
     at one points, default should become `1`.
 
     ---
+
     ---
     **NOTE2**:\
     this flag has only sense if diagonal elements only flag is `OFF`.
