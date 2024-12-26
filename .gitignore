@@ -68,3 +68,6 @@ app/**
 compile_flags.txt
 resources/cmake/
 tests/
+readme_files/
+resources/
+scripts/
