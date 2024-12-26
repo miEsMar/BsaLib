@@ -206,7 +206,7 @@ foreach(config ${CMAKE_CONFIGURATION_TYPES})
    endif()
 endforeach()
 
-add_subdirectory( app )
+add_subdirectory( bsa )
 
 
 message( STATUS "NOTE: Build status:")
