@@ -66,7 +66,6 @@ set_target_properties( ${project} PROPERTIES
    DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX}
 )
 
-target_include_directories( ${project} AFTER PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/CONSTANTS )
 
 
 # # TODO: experimental

@@ -22,7 +22,7 @@ module BsaLib
    public
 
 
-#include "_CONSTANTS.F90"
+#include "CONSTANTS/_CONSTANTS.F90"
 
 
    interface bsa_exportBRdecomp

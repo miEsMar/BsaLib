@@ -9,7 +9,7 @@ src_dir: ./BsaLib/src
 output_dir: ./docs
 exclude_dir: BsaLib/src/*
 preprocess: true
-preprocessor: ifort /E /I:.\BsaLib\src\CONSTANTS\
+preprocessor: ifort /E /I:.\BsaLib\src
 predocmark: >
 docmark_alt: #
 predocmark_alt: <
