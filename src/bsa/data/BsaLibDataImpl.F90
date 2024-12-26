@@ -22,12 +22,12 @@ submodule(BsaLib_Data) BsaLib_DataImpl
 contains
 
 
-   module function evaluatePSD(f, nf, itc) result(PSD)
+   module function evaluatePSD(f, nf, itc) result(psd)
       integer(bsa_int_t), intent(in) :: nf, itc
       real(bsa_real_t), intent(in)   :: f(nf)
-      real(bsa_real_t), allocatable, target :: PSD(:, :)
+      real(bsa_real_t), allocatable, target :: psd(:, :)
 
-      PSD = wd%evalPSD(nf, f, struct_data%nn_load_, struct_data%n_load_, 1, itc)
+      psd = wd%evalPSD(nf, f, struct_data%nn_load_, struct_data%n_load_, 1, itc)
    end function
 
 

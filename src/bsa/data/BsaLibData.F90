@@ -29,10 +29,10 @@ module BsaLib_Data
 
 
    interface
-      module function evaluatePSD(f, nf, itc) result(PSD)
+      module function evaluatePSD(f, nf, itc) result(psd)
          integer(bsa_int_t), intent(in) :: nf, itc
          real(bsa_real_t), intent(in)   :: f(nf)
-         real(bsa_real_t), allocatable, target :: PSD(:, :)
+         real(bsa_real_t), allocatable, target :: psd(:, :)
       end function
 
       module subroutine cleanBSAData_()
@@ -53,8 +53,15 @@ module BsaLib_Data
    type(StructureData_t), allocatable, target :: struct_data
    type(timer_t),         allocatable, target :: timer
 
+   !> Tracks if we have cleaned BSA data or not.
    logical :: is_data_cleaned_   = .false.
+
+   !> Controls whether we need to close debug unit or not.
+   !> This is for those cases where the debug unit is provided
+   !> by the hosting unit, and so we do not own it.
    logical :: close_deb_unit_    = .true.
+
+   !> Controls if we need to validate modal data or not.
    logical :: do_validate_modal_ = .true.
 
    integer(bsa_int_t) :: dimNf_psd_ = 0, dimNf_bisp_ = 0
