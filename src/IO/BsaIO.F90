@@ -59,6 +59,10 @@ module BsaLib_IO
          integer, intent(in) :: istat
       end subroutine
 
+      module function io_readBsaInputParams() result(ret)
+         integer(bsa_int_t) :: ret
+      end function
+
       module subroutine io_printUserData()
       end subroutine
    end interface

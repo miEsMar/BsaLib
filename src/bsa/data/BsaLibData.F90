@@ -53,6 +53,13 @@ module BsaLib_Data
    type(StructureData_t), allocatable, target :: struct_data
    type(timer_t),         allocatable, target :: timer
 
+
+   !> If <code>.true.</code> reads BSA input parameters from
+   !> <code>BsaLib</code> formatted file <code>bsa.bsadata</code>.
+   !> This can be enabled by calling <code>bsa_readInputParamsFromBSAFile()</code>.
+   !> If the file does not exist, an error is raised.
+   logical :: do_read_input_internal_ = .false.
+
    !> Tracks if we have cleaned BSA data or not.
    logical :: is_data_cleaned_   = .false.
 

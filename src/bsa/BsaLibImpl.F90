@@ -57,9 +57,14 @@ contains
 
 
 
+   module subroutine bsa_readInputParamsFromBSAFile()
+      do_read_input_internal_ = .true.
+   end subroutine
+
+
 
    module subroutine bsa_Init()
-      use BsaLib_MPolicy,   only: MPolicy_create_default_set
+      use BsaLib_MPolicy, only: MPolicy_create_default_set
       integer(int32) :: istat
       character(len = 256) :: emsg
 
@@ -166,6 +171,7 @@ contains
          call generateBSAInputFiles_()
       endif
 
+      ! This is in case we only want to generate BSA compatible files.
       if (.not. do_run_bsalib_) return
 
       if (settings%i_compute_psd_ == 0 .and. settings%i_compute_bisp_ == 0) then
@@ -174,6 +180,16 @@ contains
             WARNMSG, 'Both  PSD  and  BISP  computation are disabled.'
          return
       endif
+
+
+      ! Check if we are asked to read BSA data from default bsa.bsadata file
+      if (do_read_input_internal_) then
+         if (0_bsa_int_t /= io_readBsaInputParams()) then
+            print '(1x, 3a)', &
+               ERRMSG, BSA_DATA_FNAME, ' does not exist in current working directory.'
+            call bsa_Abort()
+         end if
+      end if
 
 
       if (.not. header_called_) call bsa_printBSAHeader()

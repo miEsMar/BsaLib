@@ -32,6 +32,92 @@ contains
 
 
 
+   module function io_readBsaInputParams() result(ret)
+      use BsaLib
+      character(len = 64) :: label
+      character(len = *), parameter :: fmt_a = '(a)', fmt_i = '(i8)'
+      logical :: exists
+      integer(bsa_int_t) :: IUN_BSADATA, i
+      integer(bsa_int_t) :: ret
+
+      integer(bsa_int_t) :: i_suban, i_vers, i_defsc, i_psd, i_bisp, i_onlyd, i_test
+      integer(bsa_int_t) :: i_bispsym, i_3dsym, i_scalar, i_nfreqs
+      real(bsa_real_t)   :: r_df
+      integer(bsa_int_t) :: i_svd, i_bkgrfmt, i_fcov, i_dumpmod
+      real(bsa_real_t)   :: r_bkgaext, r_genpaext, r_maxaext
+      integer(bsa_int_t) :: i_ntc, i_ndirs, tc(3), dirs(3)
+
+
+      ret = 0
+      inquire(file=BSA_DATA_FNAME, exist=exists)
+      if (.not. exists) then
+         ret = 1
+         return
+      end if
+
+      open(newunit=IUN_BSADATA      &
+         , file=BSA_DATA_FNAME      &
+         , form=IO_FORM_FORMATTED   &
+         , action=IO_ACTION_READ)
+
+      read(IUN_BSADATA, fmt_a) label
+      read(IUN_BSADATA, fmt_i) i_suban
+      read(IUN_BSADATA, fmt_i) i_vers
+      read(IUN_BSADATA, fmt_i) i_defsc
+      read(IUN_BSADATA, fmt_i) i_psd
+      read(IUN_BSADATA, fmt_i) i_bisp
+      read(IUN_BSADATA, fmt_i) i_onlyd
+      read(IUN_BSADATA, fmt_i) i_bispsym
+      read(IUN_BSADATA, fmt_i) i_3dsym
+      read(IUN_BSADATA, fmt_i) i_test
+      if (i_suban /= 0) call bsa_setAnalysisType(i_suban)
+      if (i_vers  /= 0) call bsa_setVersion(i_vers)
+      if (i_defsc /= 0) call bsa_setScalingConv(i_defsc)
+      call bsa_setSpectraComputation(i_psd, i_bisp)
+      call bsa_setSpectraExtension(i_onlyd)
+      call bsa_setSpatialSymmetry(i_bispsym)
+      call bsa_setSpectraSymmetries(i_3dsym)
+      call bsa_setTestMode(i_test)
+
+
+      read(IUN_BSADATA, fmt_a) label
+      read(IUN_BSADATA, fmt_i) i_scalar
+      read(IUN_BSADATA, fmt_i) i_nfreqs
+      read(IUN_BSADATA,     *) r_df
+      call bsa_setClassicMode(i_scalar)
+      call bsa_setupClassic(i_nfreqs, r_df)
+
+      read(IUN_BSADATA, fmt_a) label
+      read(IUN_BSADATA, fmt_i) i_svd
+      read(IUN_BSADATA, fmt_i) i_bkgrfmt
+      read(IUN_BSADATA,     *) r_bkgaext
+      read(IUN_BSADATA,     *) r_genpaext
+      read(IUN_BSADATA,     *) r_maxaext
+      read(IUN_BSADATA, fmt_i) i_fcov
+      read(IUN_BSADATA, fmt_i) i_dumpmod
+      call bsa_setupMesher(&
+         i_svd, i_bkgrfmt, r_bkgaext, r_genpaext, r_maxaext, i_fcov, i_dumpmod)
+
+      ! directions
+      read(IUN_BSADATA, fmt_a)   label
+      read(IUN_BSADATA, fmt_i)   i_ndirs
+      do i = 1, i_ndirs
+         read(IUN_BSADATA, fmt_i) dirs(i)
+      enddo
+      call bsa_setWindDirections(dirs(1 : i_ndirs), i_ndirs)
+
+      ! turbulence
+      read(IUN_BSADATA, fmt_a)   label
+      read(IUN_BSADATA, fmt_i)   i_ntc
+      do i = 1, i_ntc
+         read(IUN_BSADATA, fmt_i) tc(i)
+      enddo
+      call bsa_setWindTurbComps(tc(1 : i_ntc), i_ntc)
+   end function
+
+
+
+
    module subroutine io_printUserData()
       character(len=64) :: fmt
       character(len=64) :: fmt2

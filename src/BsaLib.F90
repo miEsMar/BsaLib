@@ -59,6 +59,10 @@ module BsaLib
       end subroutine
 
 
+      module subroutine bsa_readInputParamsFromBSAFile()
+      end subroutine
+
+
       module subroutine bsa_setSpatialSymmetry(isym)
          !# <span style="white-space: pre-line">
          ! Sets spatial symmetry value. 

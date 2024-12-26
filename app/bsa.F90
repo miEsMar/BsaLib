@@ -22,15 +22,6 @@ module data
    integer(int32), parameter :: IUN_EXTDATA = 22223
    logical :: l_formmode = .false.
    logical :: ext_data_read_ = .false.
-   logical :: bsa_data_read_ = .false.
-
-   integer(int32) :: i_suban, i_vers, i_defsc, i_psd, i_bisp, i_onlyd, i_test
-   integer(int32) :: i_bispsym, i_3dsym, i_scalar, i_nfreqs
-   real(real64)   :: r_df
-   integer(int32) :: i_svd, i_bkgrfmt, i_fcov, i_dumpmod
-   real(real64)   :: i_bkgaext, i_genpaext, i_maxaext
-
-   integer(int32) :: i_ntc, i_ndirs, tc(3), dirs(3)
 
    integer(int32) :: i_nnodes, i_nlibs, i_nnodesl, i_nlibsl
    integer(int32), target, allocatable :: nodesl(:), libsl(:)
@@ -119,10 +110,10 @@ program bsa
    ! POST-PROCESSING
    if (export_results_to_files_ .and. .not.is_visual_) then
 
-      if (i_onlyd == 1) then
-         cmb_sffx = 'diag' // BSA_FILE_NAME_CL_SUFFIX
-      else
+      if (bsa_isFullComp()) then
          cmb_sffx = 'full' // BSA_FILE_NAME_CL_SUFFIX
+      else
+         cmb_sffx = 'diag' // BSA_FILE_NAME_CL_SUFFIX
       endif
 
       block
@@ -182,7 +173,7 @@ program bsa
             ! TODO: maybe check if file already exists
             call bsa_saveCoordinatesToFile('coordinates.txt')
 
-            if (i_onlyd == 0) then
+            if (bsa_isFullComp()) then
                if (allocated(peak_pos_r_diag_g))  then
                   fname = exp_prfx // 'peak_pos_r_' // cmb_sffx // 'D' // '_g' // exp_fext
                   call bsa_exportExtremeValuesToFile(fname, peak_pos_r_diag_g)
@@ -553,21 +544,7 @@ contains ! utility procedures
 
       call bsa_Init()  ! This initialises all necessary instances.
 
-      ! SETTINGS
-      if (i_suban /= 0) call bsa_setAnalysisType(i_suban)
-      if (i_vers  /= 0) call bsa_setVersion(i_vers)
-      if (i_defsc /= 0) call bsa_setScalingConv(i_defsc)
-      call bsa_setSpectraComputation(i_psd, i_bisp)
-      call bsa_setSpectraExtension(i_onlyd)
-      call bsa_setSpatialSymmetry(i_bispsym)
-      call bsa_setSpectraSymmetries(i_3dsym)
-      call bsa_setTestMode(i_test)
-      call bsa_setupClassic(i_nfreqs, real(r_df, kind=bsa_real_t))
-      call bsa_setClassicMode(i_scalar)
-      call bsa_setupMesher(&
-         i_svd, i_bkgrfmt, i_bkgaext, i_genpaext, i_maxaext, i_fcov, i_dumpmod)
-      call bsa_setWindDirections(dirs(1 : i_ndirs), i_ndirs)
-      call bsa_setWindTurbComps(tc(1 : i_ntc), i_ntc)
+      call bsa_readInputParamsFromBSAFile()
 
       ! NODAL
       call bsa_setTotalNOfNodes(i_nnodes)
@@ -642,9 +619,8 @@ contains ! utility procedures
    subroutine readDataFiles()
 
       call getExtData()
-      call getBsaData()
 
-      if (.not. (bsa_data_read_ .and. ext_data_read_)) then
+      if (.not. ext_data_read_) then
          print '(1x, 2a)', &
             ERRMSG, 'Error reading input data from files.'
          call releaseMemory(5)
@@ -868,65 +844,6 @@ contains ! utility procedures
       print '(1x, 2a)', &
          INFOMSG, 'Ext data read correctly.'
 #endif
-   end subroutine
-
-
-
-
-
-   subroutine getBsaData()
-      character(len = 256) :: label
-      character(len = *), parameter :: fmt_a = '(a)', fmt_i = '(i8)'
-      integer :: i
-
-
-      if (.not. ext_data_read_) return
-
-      open(unit=IUN_BSADATA   &
-         , file=BSA_DATA_FNAME &
-         , form='formatted'   &
-         , action=IO_ACTION_READ)
-
-      read(IUN_BSADATA, fmt_a) label
-      read(IUN_BSADATA, fmt_i) i_suban
-      read(IUN_BSADATA, fmt_i) i_vers
-      read(IUN_BSADATA, fmt_i) i_defsc
-      read(IUN_BSADATA, fmt_i) i_psd
-      read(IUN_BSADATA, fmt_i) i_bisp
-      read(IUN_BSADATA, fmt_i) i_onlyd
-      read(IUN_BSADATA, fmt_i) i_bispsym
-      read(IUN_BSADATA, fmt_i) i_3dsym
-      read(IUN_BSADATA, fmt_i) i_test
-
-      read(IUN_BSADATA, fmt_a) label
-      read(IUN_BSADATA, fmt_i) i_scalar
-      read(IUN_BSADATA, fmt_i) i_nfreqs
-      read(IUN_BSADATA,     *) r_df
-
-      read(IUN_BSADATA, fmt_a) label
-      read(IUN_BSADATA, fmt_i) i_svd
-      read(IUN_BSADATA, fmt_i) i_bkgrfmt
-      read(IUN_BSADATA,     *) i_bkgaext
-      read(IUN_BSADATA,     *) i_genpaext
-      read(IUN_BSADATA,     *) i_maxaext
-      read(IUN_BSADATA, fmt_i) i_fcov
-      read(IUN_BSADATA, fmt_i) i_dumpmod
-
-      ! directions
-      read(IUN_BSADATA, fmt_a)   label
-      read(IUN_BSADATA, fmt_i)   i_ndirs
-      do i = 1, i_ndirs
-         read(IUN_BSADATA, fmt_i) dirs(i)
-      enddo
-
-      ! turbulence
-      read(IUN_BSADATA, fmt_a)   label
-      read(IUN_BSADATA, fmt_i)   i_ntc
-      do i = 1, i_ntc
-         read(IUN_BSADATA, fmt_i) tc(i)
-      enddo
-
-      bsa_data_read_ = .true.
    end subroutine
 
 
