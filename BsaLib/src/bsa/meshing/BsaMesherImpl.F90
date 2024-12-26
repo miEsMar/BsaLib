@@ -17,7 +17,7 @@ submodule(BsaLib) BsaLib_MesherImpl
 
    use BsaLib_Data
    use BsaLib_MPolicy
-   use BsaLib_IO,          only: unit_debug_, unit_dump_bfm_, allocKOMsg, deallocKOMsg
+   use BsaLib_IO,          only: unit_debug_, IO_BFMDUMP_BASE_UNIT, io_units_bfmdump, allocKOMsg, deallocKOMsg
    use BsaLib_MPoint,      only: MPoint_t, MPoint
    use BsaLib_MRectZone,   only: MRectZone_t, MRectZone
    use BsaLib_MTriangZone, only: MTriangZone_t, MTriangZone
@@ -61,8 +61,7 @@ contains
       print '(1x, 2a/)', NOTEMSG, 'Using version with POD caching.' 
 #endif
 
-      if (openBFMDumpFile_() /= 0_int32) call bsa_Abort("Failed to open BFM dump file.")
-      rewind(unit_dump_bfm_)
+      if (0_int32 /= openBFMDumpFiles_()) call bsa_Abort("Failed to open BFM dump file(s).")
 
       lflag = settings%i_only_diag_ == 0 .and. settings%i_use_svd_ == 1
       if (lflag) call prefetchSVDWorkDim_()
@@ -110,20 +109,20 @@ contains
       ! NOTE: Dump modal info if needed, before rewinding..
       if (.not. is_visual_) then
 
-         write(unit_dump_bfm_) settings%i_dump_modal_
+         write(io_units_bfmdump(1)) settings%i_dump_modal_
          if (settings%i_dump_modal_ == 1) then
 
             ! write kept modes, might serve after as well.
             ! NOTE: in fact, nm_eff_ is the VERY FIRST thing which is dumped!
             !       But, at the very beginning, we don't yet how many modes will be kept, 
             !       this is why it is done now here.
-            write(unit_dump_bfm_) struct_data%modal_%modes_
+            write(io_units_bfmdump(1)) struct_data%modal_%modes_
 
-            write(unit_dump_bfm_) &
+            write(io_units_bfmdump(1)) &
                struct_data%modal_%Mm_(struct_data%modal_%modes_)
-            write(unit_dump_bfm_) &
+            write(io_units_bfmdump(1)) &
                struct_data%modal_%Cm_(struct_data%modal_%modes_, struct_data%modal_%modes_)
-            write(unit_dump_bfm_) &
+            write(io_units_bfmdump(1)) &
                struct_data%modal_%Km_(struct_data%modal_%modes_)
 
             print '(/ 1x, 2a)', INFOMSG, 'Modal info dumped -- ok.'
@@ -133,8 +132,10 @@ contains
 
       ! cleanup
       998 if (lflag .and. .not. test_no_bfm_mlr_) call cleanSVDWorkInfo_()
-      inquire(unit = unit_dump_bfm_, opened = lflag)
-      if (lflag) close(unit_dump_bfm_)
+      do istat = 1, size(io_units_bfmdump)
+         inquire(unit=io_units_bfmdump(istat), opened = lflag)
+         if (lflag) close(io_units_bfmdump(istat))
+      enddo
 
 
       ! if (.not. is_visual_) then
@@ -157,35 +158,59 @@ contains
 
 
 
-
-   integer(int32) function openBFMDumpFile_() result(iost)
-      logical :: iun_open
-
-      ! check that unit dedicated to dump is not in use already, then, open it
-      iun_open = .true.
-      do while (iun_open)
-         inquire(unit=unit_dump_bfm_, opened=iun_open)
-         if (.not. iun_open) exit
-         unit_dump_bfm_ = unit_dump_bfm_ + 1
-      enddo
+   integer(int32) function openBFMDumpFile_(iun, fname) result(iost)
+      integer(int32), value :: iun
+      character(len=*), intent(in) :: fname
 
       if (is_visual_) then
          open(&
-            unit=unit_dump_bfm_,      &
-            file=bfm_dump_file_name_, &
-            form=IO_FORM_UNFORMATTED, &
-            access=IO_ACCESS_STREAM,  &
-            action=IO_ACTION_READ,    &
+            unit=iun,                  &
+            file=fname,                &
+            form=IO_FORM_UNFORMATTED,  &
+            access=IO_ACCESS_STREAM,   &
+            action=IO_ACTION_READ,     &
             iostat=iost)
       else
          open(&
-            unit=unit_dump_bfm_,          &
-            file=bfm_dump_file_name_,     &
+            unit=iun,                     &
+            file=fname,                   &
             form=IO_FORM_UNFORMATTED,     &
             access=IO_ACCESS_STREAM,      &
             action=IO_ACTION_READWRITE,   &
             iostat=iost)
       endif
+      rewind(iun)
+   end function
+
+
+
+
+   integer(int32) function openBFMDumpFiles_() result(iost)
+      logical :: iun_open
+      integer :: iun, i, n
+
+      ! TODO: adapt to multi-threaded env
+      n = 1
+      allocate(io_units_bfmdump(n))
+      io_units_bfmdump = 0
+
+      ! check that unit dedicated to dump is not in use already, then, open it
+      i   = 1
+      iun = IO_BFMDUMP_BASE_UNIT
+      iun_open = .true.
+      do
+         do while (iun_open)
+            inquire(unit=iun, opened=iun_open)
+            if (.not. iun_open) exit
+            iun = iun + 1
+         enddo
+         iost = openBFMDumpFile_(iun, bfm_dump_file_name_)
+         if (0_int32 /= iost) return
+         io_units_bfmdump(i) = iun
+         if (i == n) exit
+         iun = iun + 1   ! NOTE: this to avoid a cycle where we know that unit iun is taken!
+         i   = i + 1
+      enddo
    end function
 
 
@@ -284,11 +309,11 @@ contains
 
 
       ! NOTE: Reserve space for info that will be OVERRIDEN once we have it
-      write(unit_dump_bfm_) iost
-      write(unit_dump_bfm_) iost
-      write(unit_dump_bfm_) iost
-      write(unit_dump_bfm_) iost
-      write(unit_dump_bfm_) iost
+      write(io_units_bfmdump(1)) iost
+      write(io_units_bfmdump(1)) iost
+      write(io_units_bfmdump(1)) iost
+      write(io_units_bfmdump(1)) iost
+      write(io_units_bfmdump(1)) iost
 
 
 
@@ -1380,12 +1405,12 @@ contains
 
       ! NOTE: Ok, now that premesh has finished, before going to actual meshing, 
       !       rewind dump file and rewrite actual needed head information.
-      rewind(unit_dump_bfm_)
-      write(unit_dump_bfm_) POD_CACHING_FLAG
-      write(unit_dump_bfm_) struct_data%modal_%nm_eff_
-      write(unit_dump_bfm_) dimM_bisp_
-      write(unit_dump_bfm_) msh_NZones
-      write(unit_dump_bfm_) msh_max_zone_NPts
+      rewind(io_units_bfmdump(1))
+      write(io_units_bfmdump(1)) POD_CACHING_FLAG
+      write(io_units_bfmdump(1)) struct_data%modal_%nm_eff_
+      write(io_units_bfmdump(1)) dimM_bisp_
+      write(io_units_bfmdump(1)) msh_NZones
+      write(io_units_bfmdump(1)) msh_max_zone_NPts
 
 #ifdef BSA_DEBUG
       write(unit_debug_, *) ' @BsaMesherImpl::PreMesh() : Init BSA-Mesher pre meshing phase -- ok.'
@@ -1440,13 +1465,13 @@ contains
       ! skip them, we already have them stored in module variables
       ! However, there since they might serve outside this scope
       ! (i.e. if undumping file from another program)
-      rewind(unit_dump_bfm_)        ! make sure to rewind unit before starting reading it
-      read(unit_dump_bfm_) izone    ! POD caching flag
+      rewind(io_units_bfmdump(1))        ! make sure to rewind unit before starting reading it
+      read(io_units_bfmdump(1)) izone    ! POD caching flag
       if (izone /= POD_CACHING_FLAG) call bsa_Abort("Incompatible Dump file, must be regenerated. Aborting.")
-      read(unit_dump_bfm_) izone    ! n modes effective
-      read(unit_dump_bfm_) izone    ! dimM_bisp
-      read(unit_dump_bfm_) nzones   ! n. of meshing zones
-      read(unit_dump_bfm_) ival2    ! msh_max_zone_PTS
+      read(io_units_bfmdump(1)) izone    ! n modes effective
+      read(io_units_bfmdump(1)) izone    ! dimM_bisp
+      read(io_units_bfmdump(1)) nzones   ! n. of meshing zones
+      read(io_units_bfmdump(1)) ival2    ! msh_max_zone_PTS
 
 
 #ifndef BSA_USE_POD_DATA_CACHING
@@ -1475,7 +1500,7 @@ contains
 
       ! NOTE: Undump main Rect BKG Peak zone separately
       !
-      read(unit_dump_bfm_) izone_id
+      read(io_units_bfmdump(1)) izone_id
       print '(1x, 2a, i6, a, i0 )', &
          INFOMSG, 'Interpolating zone n. ', 1, ', with ID=  ', izone_id
       if (do_export_base_) export_data_base_local_%idZone_ = izone_id
@@ -1509,7 +1534,7 @@ contains
       !$omp          , MSHR_SVD_INFO, MSHR_SVD_LWORK, MSHR_SVD_WORK            &
       !$omp          , bkg_peakw_, izone, MZone_ID, msh_NZones, m3mr_msh_ptr_  &
       !$omp          , msh_ZoneLimsInterestModes, do_validate_deltas_          &
-      !$omp          , msh_bfmpts_post_, msh_brmpts_post_, unit_dump_bfm_      &
+      !$omp          , msh_bfmpts_post_, msh_brmpts_post_, io_units_bfmdump      &
       !$omp          , is_visual_, is_brn_export_, visual_idx_                 &
       !$omp          , dimM_bisp_, getBFM_msh, getBRM_msh, write_brm_fptr_),   &
       !$omp   num_threads(n_threads)
@@ -1519,7 +1544,7 @@ contains
 #if  (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
          !$omp critical
 #endif
-         read(unit_dump_bfm_) izone_id   ! fetch zone type ID
+         read(io_units_bfmdump(1)) izone_id   ! fetch zone type ID
 
          izone = izone + 1
          print '(1x, 2a, i6, a, i0 )', &

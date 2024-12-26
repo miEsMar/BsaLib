@@ -26,7 +26,7 @@ submodule(BsaLib_MRectZone) BsaLib_MRectZoneImpl
 
    use BsaLib_CONSTANTS
    use BsaLib_Data,     only: bsa_Abort, msh_max_zone_NPts
-   use BsaLib_IO,       only: unit_debug_, unit_dump_bfm_
+   use BsaLib_IO,       only: unit_debug_, io_units_bfmdump
    use BsaLib_MPoint,   only: MPoint, MPoint_t, getPointsDistance
    use BsaLib_MZone,    only: DefaultInitBaseZone, MZone_ID, DumpZone
    implicit none (type, external)
@@ -1201,21 +1201,21 @@ contains
       !!       current imlementation is what we are looking for.
       class(MRectZone_t), intent(in) :: this
 
-      write(unit_dump_bfm_) MZone_ID%RECTANGLE
+      write(io_units_bfmdump(1)) MZone_ID%RECTANGLE
 
       ! init pt
-      write(unit_dump_bfm_) this%Ipt_%freqI(), this%Ipt_%freqJ()
+      write(io_units_bfmdump(1)) this%Ipt_%freqI(), this%Ipt_%freqJ()
 
-      write(unit_dump_bfm_) this%rot_
-      write(unit_dump_bfm_) this%base_I_, this%base_J_
+      write(io_units_bfmdump(1)) this%rot_
+      write(io_units_bfmdump(1)) this%base_I_, this%base_J_
 
       ! NOTE: maybe useless ?
-      write(unit_dump_bfm_) this%ni_, this%nj_
+      write(io_units_bfmdump(1)) this%ni_, this%nj_
 
 #ifdef _BSA_ZONE_DEBUG
       write(unit=4533, fmt=*) &
          'Refms at  RZ=', trim(this%name_), this%ni_, this%nj_, &
-			'thread id= ', omp_get_thread_num()
+         'thread id= ', omp_get_thread_num()
 #endif
    end subroutine dumpRZ
 
@@ -1234,20 +1234,20 @@ contains
       integer(bsa_int_t) :: ival1, ival2
 
       ! init point
-      read(unit_dump_bfm_) rval1, rval2
+      read(io_units_bfmdump(1)) rval1, rval2
       call this%Ipt_%setfreqs(rval1, rval2)
 
       ! rotation
-      read(unit_dump_bfm_) rval1
+      read(io_units_bfmdump(1)) rval1
       this%rot_ = rval1
 
       ! sides
-      read(unit_dump_bfm_) rval1, rval2
+      read(io_units_bfmdump(1)) rval1, rval2
       this%base_I_ = rval1
       this%base_J_ = rval2
 
       ! refinements
-      read(unit_dump_bfm_) ival1, ival2
+      read(io_units_bfmdump(1)) ival1, ival2
       call this%setRefinements(ival1, ival2, .true.)
    end subroutine undumpRZ
 
@@ -1260,7 +1260,7 @@ contains
 
    module subroutine interpolateRZ( this &
 #ifndef BSA_USE_POD_DATA_CACHING
-# define __bfm_undump__ bfm, 
+# define __bfm_undump__ bfm,
       & , bfm &
 #else
 # define __bfm_undump__

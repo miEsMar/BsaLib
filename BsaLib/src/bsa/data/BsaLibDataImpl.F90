@@ -103,6 +103,7 @@ contains
 
    subroutine closeBSAUnits_()
       logical :: isopn
+      integer :: i
 
       ! NOTE: keep conditions since they might be provided from 
       !       host program, so they would not want me to close them.
@@ -112,8 +113,11 @@ contains
          if (isopn) close(unit_debug_)
       endif
 
-      inquire(unit = unit_dump_bfm_, opened = isopn)
-      if (isopn) close(unit_dump_bfm_)
+      do i = 1, size(io_units_bfmdump)
+         inquire(unit = io_units_bfmdump(i), opened = isopn)
+         if (isopn) close(io_units_bfmdump(i))
+      enddo
+      deallocate(io_units_bfmdump)
 
       inquire(unit = un_export_bisp_cls_, opened = isopn)
       if (isopn) close(un_export_bisp_cls_)

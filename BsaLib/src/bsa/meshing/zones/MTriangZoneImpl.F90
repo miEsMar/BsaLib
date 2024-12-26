@@ -28,7 +28,7 @@ submodule(BsaLib_MTriangZone) BsaLib_MTriangZoneImpl
    use BsaLib_MPoint,    only: MPoint_t, MPoint, getPointsDistance, assignment(=), operator(==)
    use BsaLib_MZone,     only: MZone_ID, DUmpZone
    use BsaLib_Data,      only: bsa_Abort, msh_max_zone_NPts
-   use BsaLib_IO,        only: unit_dump_bfm_
+   use BsaLib_IO,        only: io_units_bfmdump
    implicit none (type, external)
 
 
@@ -214,7 +214,7 @@ contains
       logical :: do_invert = .false.
       real(bsa_real_t) :: ang
 
-      
+
       if (present(df_I_cst) .and. present(df_J_cst)) do_invert = .true.
 
 
@@ -305,7 +305,7 @@ contains
 
                   this%Apt_ = P1
                   this%Bpt_ = P2
-               
+
                elseif (P2%freqI() < P1%freqI()) then
 
                   this%Apt_ = P2
@@ -422,17 +422,15 @@ contains
 
             end block
 
-         endif ! optional vals present         
+         endif ! optional vals present
 
 
       else ! use deltas
 
 
-
          if (.not. (present(val_types) .and. present(val1) .and. present(val2))) &
             call bsa_Abort('Please provide both deltas.')
-            
-         
+
          block
             integer :: slen, i
 
@@ -517,16 +515,16 @@ contains
       !! Dumps a triang zone data for later reconstruction
       class(MTriangZone_t), intent(in) :: this
 
-      write(unit_dump_bfm_) MZone_ID%TRIANGLE
+      write(io_units_bfmdump(1)) MZone_ID%TRIANGLE
 
       ! 3 pts
-      write(unit_dump_bfm_) this%Cpt_%freqI(), this%Cpt_%freqJ()
-      write(unit_dump_bfm_) this%Apt_%freqI(), this%Apt_%freqJ()
-      write(unit_dump_bfm_) this%Bpt_%freqI(), this%Bpt_%freqJ()
-      
+      write(io_units_bfmdump(1)) this%Cpt_%freqI(), this%Cpt_%freqJ()
+      write(io_units_bfmdump(1)) this%Apt_%freqI(), this%Apt_%freqJ()
+      write(io_units_bfmdump(1)) this%Bpt_%freqI(), this%Bpt_%freqJ()
+
       ! NOTE: useless, since rot might reconstructed from points
-      write(unit_dump_bfm_) this%rot_
-      write(unit_dump_bfm_) this%ni_, this%nj_
+      write(io_units_bfmdump(1)) this%rot_
+      write(io_units_bfmdump(1)) this%ni_, this%nj_
 
 #ifdef _BSA_ZONE_DEBUG
       write(unit=4533, fmt=*) &
@@ -544,18 +542,18 @@ contains
       real(bsa_real_t) :: rval1, rval2
 
       ! 3 pts
-      read(unit_dump_bfm_) rval1, rval2
+      read(io_units_bfmdump(1)) rval1, rval2
       call this%Cpt_%setFreqs(rval1, rval2)
 
-      read(unit_dump_bfm_) rval1, rval2
+      read(io_units_bfmdump(1)) rval1, rval2
       call this%Apt_%setFreqs(rval1, rval2)
 
-      read(unit_dump_bfm_) rval1, rval2
+      read(io_units_bfmdump(1)) rval1, rval2
       call this%Bpt_%setFreqs(rval1, rval2)
 
 
-      read(unit_dump_bfm_) this%rot_
-      read(unit_dump_bfm_) this%ni_, this%nj_
+      read(io_units_bfmdump(1)) this%rot_
+      read(io_units_bfmdump(1)) this%ni_, this%nj_
    end subroutine undumpTZ
 
 

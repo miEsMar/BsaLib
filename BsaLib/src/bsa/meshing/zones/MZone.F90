@@ -17,7 +17,7 @@ module BsaLib_MZone
 
    use BsaLib_CONSTANTS, only: bsa_int_t, bsa_real_t, int32
    use BsaLib_Data,      only: bsa_Abort, test_no_bfm_mlr_
-   use BsaLib_IO,        only: unit_dump_bfm_
+   use BsaLib_IO,        only: io_units_bfmdump
    use BsaLib_MPolicy,   only: MPolicy_t, MPolicy_NULL, assignment(=), operator(==)
    implicit none (type, external)
    private
@@ -147,20 +147,15 @@ contains
 
 
 
-
-#ifdef BSA_USE_POD_DATA_CACHING
-# define __bfm_dump__
-# define __decl__
-#else
-# define __bfm_dump__ ,data
-# define __decl__ real(bsa_real_t), intent(in) :: data(:, :)
+   subroutine DumpZone(z  &
+#ifndef BSA_USE_POD_DATA_CACHING
+         , data &
 #endif
-   subroutine DumpZone(z  __bfm_dump__ )
+   )
       class(MZone_t), intent(in)   :: z
-      __decl__
-#undef __bfm_dump__
-#undef __decl__
-      ! integer             :: tot
+#ifndef BSA_USE_POD_DATA_CACHING
+      real(bsa_real_t), intent(in) :: data(:, :)
+#endif
 
       ! dump specific zone data
       ! NOTE: keep this first since 
@@ -171,13 +166,13 @@ contains
       call z%dump()
 
       ! write common zone data
-      write(unit_dump_bfm_) z%name_
+      write(io_units_bfmdump(1)) z%name_
 
       ! policy
-      write(unit_dump_bfm_) z%policy_%getID()
+      write(io_units_bfmdump(1)) z%policy_%getID()
 
       ! zone interest modes index ptr
-      write(unit_dump_bfm_) z%id_im_
+      write(io_units_bfmdump(1)) z%id_im_
 
 
       ! Dump BFM data.
@@ -186,9 +181,9 @@ contains
       ! ! afterwards. Then, dimBISP is automatically
       ! ! deferred knowing num of zone's meshing points
       ! tot = size(data)
-      ! write(unit_dump_bfm_) tot
+      ! write(io_units_bfmdump(1)) tot
 #ifndef BSA_USE_POD_DATA_CACHING
-      write(unit_dump_bfm_) data ! NOTE: dimBISP first, then nj * ni
+      write(io_units_bfmdump(1)) data ! NOTE: dimBISP first, then nj * ni
 #endif
    end subroutine DumpZone
 
@@ -218,16 +213,16 @@ contains
       call z%undump()  ! read zone's specific data first
 
       ! read zone common data
-      read(unit_dump_bfm_) name_hdr
+      read(io_units_bfmdump(1)) name_hdr
       call z%zoneName(name_hdr(1:len_trim(name_hdr)))
 
       ! policy (ID)
-      read(unit_dump_bfm_) zNp
+      read(io_units_bfmdump(1)) zNp
       call z%setPolicy(zNp)
       if (test_no_bfm_mlr_) call z%disableZonePolicyBfmMLR()
 
       ! zone interest modes index ptr
-      read(unit_dump_bfm_) z%id_im_
+      read(io_units_bfmdump(1)) z%id_im_
 
 
 #ifndef BSA_USE_POD_DATA_CACHING
@@ -250,7 +245,7 @@ contains
       ! read actual BFM dumped data
       ! NOTE: in second dimension, nj leading over ni
       !       laydown.
-      read(unit_dump_bfm_) bfm_undump(:, 1 : zNp)
+      read(io_units_bfmdump(1)) bfm_undump(:, 1 : zNp)
 #endif
    end subroutine UndumpZone
 

@@ -24,8 +24,9 @@ module BsaLib_IO
    !**************************************************************************
    !  I/O  UNITs (mutables)
    !**************************************************************************
-   ! dumpfile
-   integer(int32) :: unit_dump_bfm_ = 999_int32
+   ! dumpfile(s)
+   integer(int32), parameter :: IO_BFMDUMP_BASE_UNIT = 1000_int32
+   integer(int32), allocatable, target :: io_units_bfmdump(:)
    integer(int32) :: un_export_bisp_cls_ = 1203_int32
    integer(int32) :: un_export_bisp_msh_ = 1204_int32
 
