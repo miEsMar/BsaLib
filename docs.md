@@ -5,11 +5,11 @@ project_github: https://github.com/miEsMar/BsaLib
 author: Michele Esposito Marzino
 email: michele.espositomarzino@gmail.com
 source: false
-src_dir: ./src
-output_dir: ./doc
-exclude_dir: src/*
+src_dir: ./BsaLib/src
+output_dir: ./docs
+exclude_dir: BsaLib/src/*
 preprocess: true
-preprocessor: ifort /E /I:.\src\CONSTANTS\
+preprocessor: ifort /E /I:.\BsaLib\src\CONSTANTS\
 predocmark: >
 docmark_alt: #
 predocmark_alt: <
@@ -27,8 +27,11 @@ extra_mods: iso_fortran_env:https://fortranwiki.org/fortran/show/iso_fortran_env
 md_extensions: markdown.extensions.toc
 ---
 
---------------------
-
 [TOC]
 
 {!README.md!}
+
+<!-- # `BsaLib` documentation generation file -->
+
+<!-- This file is read by [FORD](https://forddocs.readthedocs.io/en/latest/user_guide/getting_started.html) -->
+<!-- to generate HTML documentation for `BsaLib`. -->

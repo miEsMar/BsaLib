@@ -184,8 +184,14 @@ endif()
 
 
 ###########################################################
-# Targets compilation
+# Targets definition
 ###########################################################
+
+add_custom_target( docs ford docs.md 
+   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+   COMMENT "Building BsaLib documentation"
+)
+
 add_subdirectory( BsaLib )
 
 # reset default flags, if ever changed (hopefully backed up!)
