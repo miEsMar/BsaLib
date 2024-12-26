@@ -46,7 +46,7 @@ module BsaLib
 
 
    ! **************************************
-   !    GENERAL 
+   !    GENERAL
    ! **************************************
 
       module subroutine bsa_printBSAHeader()
@@ -115,7 +115,7 @@ module BsaLib
          ! </ul>
          !
          ! @warning
-         ! <code>itype = 1</code>  is <b>highly NOTrecommended</b>  as per the current implementation.
+         ! <code>itype = 1</code>  is <b>highly NOT recommended</b>  as per the current implementation.
          ! @endwarning
          ! </span>
 
@@ -131,7 +131,7 @@ module BsaLib
          !   <li><code>BSA_PREMESH_MODE_BASE (0)</code></li>
          !   <li><code>BSA_PREMESH_MODE_ZONE_REFINED (1)</code>  (DEFAULT)</li>
          ! </ul>
-         !  </span>
+         ! </span>
 
          integer(bsa_int_t), value :: imode
       end subroutine
