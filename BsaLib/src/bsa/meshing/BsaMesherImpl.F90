@@ -27,9 +27,6 @@ submodule(BsaLib) BsaLib_MesherImpl
       , NPSDEL, NTCOMPS, NDIRS, TCOMPS, DIRS          &
       , MSHR_SVD_INFO, MSHR_SVD_LWORK, MSHR_SVD_WORK
    implicit none (type, external)
-
-   ! to have a local instance to be referenced
-   integer(bsa_int_t) :: NM__, NM_EFF__
    character(len = *), parameter :: bfm_dump_file_name_ = 'dumpfile'
 
    ! BUG: let the user choose how many modes it allows to be covered max.
@@ -67,9 +64,6 @@ contains
       if (lflag) call prefetchSVDWorkDim_()
 
       if (.not.is_visual_) then
-
-         NM__     = struct_data%modal_%nm_
-         NM_EFF__ = struct_data%modal_%nm_eff_
 
          msh_bfmpts_pre_  = 0
          msh_bfmpts_post_ = 0
@@ -1668,7 +1662,7 @@ contains
       integer(int32), allocatable, intent(out)   :: inter_modes(:)
 
       integer(int32)   :: skip, imodesout
-      real(bsa_real_t) :: peak_ext_lims_(2, NM_EFF__)
+      real(bsa_real_t) :: peak_ext_lims_(2, NMODES_EFF)
 
 
       ! get actual peak extensions, for each mode (BACK and FORTH limits)
@@ -1678,18 +1672,18 @@ contains
       skip = 1
       do while (peak_ext_lims_(2, skip) <= bpw_ext_2)
          skip = skip + 1
-         if (skip .gt. NM_EFF__) exit
+         if (skip .gt. NMODES_EFF) exit
       enddo
-      ! skip = findloc(peak_ext_lims_(2, 1:NM_EFF__) > bpw_ext_2, .true.)
+      ! skip = findloc(peak_ext_lims_(2, 1:NMODES_EFF) > bpw_ext_2, .true.)
       ! if (skip == 0) then
-      !    skip = NM_EFF__
+      !    skip = NMODES_EFF
       ! else
       !    skip = skip - 1
       ! endif
       skip = skip - 1     !<-- how many modes actually FULLY included
 
       ! NOTE: at worst, there will be 2*NM limits (clean case)
-      imodesout = NM_EFF__ - skip
+      imodesout = NMODES_EFF - skip
 
       if (imodesout == 0) then
          print '(1x, 2a)', WARNMSG, 'All resonant peak fall within BKG peak !'
@@ -1698,11 +1692,11 @@ contains
       endif
 
       print '(1x, a, i0, a, i0, a)', &
-         INFOMSG, skip, '  res peak (out of ', NM_EFF__, ') fall(s) in BKG peak area.'
+         INFOMSG, skip, '  res peak (out of ', NMODES_EFF, ') fall(s) in BKG peak area.'
 
 
       ! warn if too many modes fall in BKG PEAK ZONE
-      if (skip >= ceiling(real(NM_EFF__) / N_RES_PEAK_IN_BKG_ZONE_DIV_FCT_)) &
+      if (skip >= ceiling(real(NMODES_EFF) / N_RES_PEAK_IN_BKG_ZONE_DIV_FCT_)) &
          print '(1x, 2a, i0, a/)', &
             WARNMSG, 'More than  1/', N_RES_PEAK_IN_BKG_ZONE_DIV_FCT_, &
             '  of resonant peaks fall entirely within BKG peak area.'
@@ -1782,7 +1776,7 @@ contains
 
          ! now, continue starting from next mode's peak zone.
          skip = skip + 1
-         do im = skip, NM_EFF__
+         do im = skip, NMODES_EFF
 
             nmode = struct_data%modal_%modes_(im)
 
@@ -1862,7 +1856,7 @@ contains
          iim = jim + 1
          inter_modes_(iim) = 1
          jim = iim + 1
-         inter_modes_(jim) = struct_data%modal_%modes_(NM_EFF__) ! only last mode is of interest
+         inter_modes_(jim) = struct_data%modal_%modes_(NMODES_EFF) ! only last mode is of interest
 
 
          ! move memory before leaving block
@@ -1890,16 +1884,16 @@ contains
 #if (_WIN32 & __INTEL_COMPILER)
 !DIR$ ATTRIBUTES FORCEINLINE :: getActualPeakZoneExtensionLimits_
 #endif
-      real(bsa_real_t) :: peak_exts_lims(2, NM_EFF__)
+      real(bsa_real_t) :: peak_exts_lims(2, NMODES_EFF)
       real(bsa_real_t) :: cst, modf, ext
       integer(int32)   :: im, nmode
       integer(int32), parameter :: I_PEAK_EXT_DIV_ = 1
 
       cst = settings%peak_area_ext_ / I_PEAK_EXT_DIV_
 
-      allocate(peak_exts_(NM__))
+      allocate(peak_exts_(NMODES))
       peak_exts_ = -1.
-      do im = 1, NM_EFF__  ! TODO: implement do concurrent
+      do im = 1, NMODES_EFF  ! TODO: implement do concurrent
 
          nmode = struct_data%modal_%modes_(im)
 
