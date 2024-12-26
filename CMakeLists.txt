@@ -65,6 +65,10 @@ option(enable-openmp           "Enable OpenMP parallelisation"                  
 option(enable-mkl              "Enable Intel MKL libraries (Intel compilers only)"  ON)
 option(enable-sym-ev-routine   "Enable usage of 'dsyev' instead of 'dgesvd'"        ON)
 
+# experimental
+option(enable-pod-caching     "Enable POD caching. EXPERIMENTAL!"                   OFF)
+option(enable-post-mesh-omp   "Enable using OpenMP in post meshing. EXPERIMENTAL!"  OFF)
+
 # GPU options
 option(enable-gpu-code         "Enable GPU kernel code with OpenCL (defaulr) or CUDA backends"  OFF)
 option(enable-const-ptr-def    "In GPU related code, declare internal pointers `const`"         ON)

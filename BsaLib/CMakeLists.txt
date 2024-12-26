@@ -67,16 +67,18 @@ set_target_properties( ${project} PROPERTIES
 )
 
 
+if ( enable-pod-caching )
+   target_compile_definitions( ${project} PRIVATE BSA_USE_POD_DATA_CACHING )
+endif()
 
-# # TODO: experimental
-# target_compile_definitions( ${project} PRIVATE BSA_USE_POD_DATA_CACHING )
 
-
-# # BUG: using OMP in post-meshing phase will result in slower runtime 
-# #      due to critical sections synchronisation where accessing shared 
-# #      file I/O. For better performances, consider rethinking about the
-# #      logic related, otherwise better use 1 thread only.
-# target_compile_definitions( ${project} PRIVATE BSA_USE_POST_MESH_OMP )
+# BUG: using OMP in post-meshing phase will result in slower runtime 
+#      due to critical sections synchronisation where accessing shared 
+#      file I/O. For better performances, consider rethinking about the
+#      logic related, otherwise better use 1 thread only.
+if ( enable-post-mesh-omp )
+   target_compile_definitions( ${project} PRIVATE BSA_USE_POST_MESH_OMP )
+endif()
 
 
 
