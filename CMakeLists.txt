@@ -210,6 +210,7 @@ add_subdirectory( bsa )
 
 
 message( STATUS "NOTE: Build status:")
-message( STATUS "        - OMP: ${enable-openmp}")
-message( STATUS "        - MKL: ${enable-mkl}")
-message( STATUS "        - GPU: ${enable-gpu-code}")
+message( STATUS "     OMP: ${enable-openmp}")
+message( STATUS "     MKL: ${enable-mkl}")
+message( STATUS "     GPU: ${enable-gpu-code}")
+
