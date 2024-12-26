@@ -28,34 +28,34 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 set(SRC
-   ${CMAKE_CURRENT_SOURCE_DIR}/BsaLib.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/CONSTANTS/CONSTANTS.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/IO/BsaIO.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/IO/BsaIOImpl.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/bsa/BsaLibImpl.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/bsa/classic/BsaClassicImpl.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/bsa/data/BsaLibData.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/bsa/data/BsaLibDataImpl.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/bsa/functions/functions.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/bsa/functions/functionsImpl.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/bsa/meshing/BsaMesherImpl.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/bsa/meshing/point/MPoint.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/bsa/meshing/policy/MPolicy.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/bsa/meshing/zones/M2DPolygZone.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/bsa/meshing/zones/MRectZone.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/bsa/meshing/zones/MRectZoneImpl.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/bsa/meshing/zones/MTriangZone.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/bsa/meshing/zones/MTriangZoneImpl.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/bsa/meshing/zones/MZone.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/settings/Settings.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/settings/SettingsImpl.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/structure/StructureData.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/structure/StructureImpl.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/timing/Timer.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/utils/utility.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/wind/WindPSDImpl.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/wind/WindSetImpl.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/wind/WindType.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/BsaLib.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/CONSTANTS/CONSTANTS.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/IO/BsaIO.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/IO/BsaIOImpl.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/BsaLibImpl.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/classic/BsaClassicImpl.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/data/BsaLibData.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/data/BsaLibDataImpl.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/functions/functions.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/functions/functionsImpl.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/meshing/BsaMesherImpl.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/meshing/point/MPoint.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/meshing/policy/MPolicy.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/meshing/zones/M2DPolygZone.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/meshing/zones/MRectZone.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/meshing/zones/MRectZoneImpl.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/meshing/zones/MTriangZone.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/meshing/zones/MTriangZoneImpl.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/meshing/zones/MZone.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/settings/Settings.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/settings/SettingsImpl.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/structure/StructureData.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/structure/StructureImpl.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/timing/Timer.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/utility.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/wind/WindPSDImpl.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/wind/WindSetImpl.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/wind/WindType.F90
 )
 
 
@@ -66,7 +66,7 @@ set_target_properties( ${project} PROPERTIES
    DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX}
 )
 
-target_include_directories( ${project} AFTER PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/CONSTANTS )
+target_include_directories( ${project} AFTER PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/CONSTANTS )
 
 
 # # TODO: experimental
@@ -130,7 +130,7 @@ if ( enable-openmp )
       target_link_libraries( ${project} PUBLIC OpenMP::OpenMP_Fortran )
    endif()
 else()
-   if (intel-compiler )
+   if ( intel-compiler )
       if (WIN32)
          target_compile_options( ${project} PRIVATE "-assume:nocc_omp" )
       endif()
@@ -140,7 +140,7 @@ endif()
 
 
 
-if (enable-shared-runtime)
+if ( enable-shared-runtime )
    message( STATUS "NOTE: Using SHARED runtime libraries!")
 else()
    if (intel-compiler)
@@ -167,7 +167,17 @@ else()
 endif()
 
 
-if (enable-gpu-code)
+
+if ( enable-gpu-code )
+
+   if (enable-cuda)
+      enable_language( CUDA )
+      if (enable-ocl-ptx-code-gen)
+         set( enable-ocl-ptx-code-gen OFF )
+      endif()
+   endif()
+   add_subdirectory( BsaCL )
+
    target_compile_definitions( ${project} PRIVATE BSA_USE_GPU )
    if (enable-cuda)
       target_compile_definitions( ${project} PRIVATE BSA_USE_CUDA )
@@ -183,7 +193,7 @@ if(NOT EXISTS "${LIB_MOD_DIR}")
 endif()
 set_target_properties( ${project} PROPERTIES Fortran_MODULE_DIRECTORY ${LIB_MOD_DIR} )
 
-target_include_directories( ${project} 
+target_include_directories( ${project}
    PUBLIC
    $<BUILD_INTERFACE:${LIB_MOD_DIR}>
    $<INSTALL_INTERFACE:${CMAKE_INSTALL_MODULEDIR}>

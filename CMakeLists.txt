@@ -182,21 +182,11 @@ if (WIN32 AND enable-gpu-code)
 endif()
 
 
+
 ###########################################################
 # Targets compilation
 ###########################################################
-if (enable-gpu-code)
-   if (enable-cuda)
-      enable_language( CUDA )
-      if (enable-ocl-ptx-code-gen)
-         set( enable-ocl-ptx-code-gen OFF )
-      endif()
-   endif()
-   add_subdirectory( BsaCL )
-endif()
-
-
-add_subdirectory( src )
+add_subdirectory( BsaLib )
 
 # reset default flags, if ever changed (hopefully backed up!)
 foreach(config ${CMAKE_CONFIGURATION_TYPES})
