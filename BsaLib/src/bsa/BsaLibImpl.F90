@@ -393,10 +393,6 @@ contains
          end if
 
 
-#ifdef _BSA_CHECK_NOD_COH_SVD
-         settings%i_suban_type_   = 2  ! force MSH execution
-#endif
-
          ! NOTE: adjust settings if we are in visual mode
          if (is_visual_) then
             if (is_brn_export_) then
@@ -446,9 +442,6 @@ contains
             endif
          endif
 
-#ifdef _BSA_CHECK_NOD_COH_SVD
-         goto 998
-#endif
 
          ! NOTE: in case we cannot have 2nd order moments, force it here
          if (.not.is_only_msh_ .or. force_cls_execution_) then
@@ -466,17 +459,15 @@ contains
          endif
       end block
 
-#if (defined(BSA_USE_GPU)) || (defined(_BSA_CHECK_NOD_COH_SVD))
-      998 continue
-#endif
 
-#ifdef BSA_USE_GPU
+#if (defined(BSA_USE_GPU))
+      998 continue
       if (is_gpu_enabled_) then
          call bsacl_Finalise()
          if (ierr_cl_ == BSACL_SUCCESS) then
             print '(1x, 2a)', INFOMSG, "BSACL returned correctly."
          else
-            call bsa_Abort(" BSACL returned with error.")
+            call bsa_Abort("BSACL returned with error.")
          endif
       endif
 #endif
@@ -2178,3 +2169,4 @@ contains
 
 
 end submodule
+

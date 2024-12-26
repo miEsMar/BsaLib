@@ -150,6 +150,7 @@ module BsaLib_Data
    end interface
 
 
+
 ! **********************************************************************
 !   GPU control data
 ! **********************************************************************
@@ -157,12 +158,6 @@ module BsaLib_Data
    logical :: is_gpu_enabled_ = .false.
 #ifdef BSA_USE_GPU
    integer(bsa_int_t), target :: ierr_cl_
-#endif
-
-
-#ifdef _BSA_CHECK_NOD_COH_SVD
-   real(bsa_real_t), allocatable :: nod_corr_full_(:, :)
-   real(bsa_real_t), allocatable :: nod_corr_EVLs_(:), nod_corr_EVTs_(:, :)
 #endif
 
 
@@ -297,7 +292,6 @@ module BsaLib_Data
 
    !> N. of POD modes to be kept
    integer(bsa_int_t) :: nmodes_POD_    = 0_int32
-
 
 #ifdef _BSA_EXPORT_POD_TRUNC_INFO
    logical, allocatable :: do_export_POD_trunc_(:)    !<-- BUG: this is because of OMP.

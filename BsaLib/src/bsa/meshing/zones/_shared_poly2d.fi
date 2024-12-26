@@ -237,10 +237,6 @@ __mod_sub_compute subroutine __sub_name_compute(this)
 #   endif
 # endif
 
-# ifdef _BSA_CHECK_NOD_COH_SVD
-      return
-# endif
-
       ! internal lines
 # ifdef __triang_zone__
       do j = 2, Nj_m1

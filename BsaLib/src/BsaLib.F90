@@ -1164,7 +1164,7 @@ module BsaLib
 
 
    ! **************************************
-   !    I/O  -  EXPORTING 
+   !    I/O  -  EXPORTING
    ! **************************************
 
       module subroutine bsa_setOutputDirectory(dirname)

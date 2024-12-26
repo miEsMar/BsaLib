@@ -604,7 +604,6 @@ contains
 
 #else  ! BSA_USE_POD_DATA_CACHING  not defined
 
-
          !
          ! NODAL WIND TURBULENCEs PSDs (for given tc)
          !
@@ -613,28 +612,11 @@ contains
          S_uvw_w2(:, 1:1) = &
             reshape(wd%evalPSD(1, fj,   NNODESL, struct_data%n_load_, 1, tc), [NNODESL, 1])
 
-# ifdef _BSA_CHECK_NOD_COH_SVD
-         if (itc == 1) then
-            write(5482, *) fj
-            do nmw1 = 1, NNODESL
-               write(5482, *) S_uvw_w2(nmw1, 1)
-            enddo
-         endif
-# endif
-
          !
          ! applying spatial nodal coherence
          !
          S_uvw_w1 = wd%getFullNodalPSD(NNODESL, struct_data%n_load_, S_uvw_w1(:, 1), fi(1), 1)
          S_uvw_w2 = wd%getFullNodalPSD(NNODESL, struct_data%n_load_, S_uvw_w2(:, 1), fj(1), 1)
-
-# ifdef _BSA_CHECK_NOD_COH_SVD
-         if (itc == 1) then
-            do nmw1 = 1, NNODESL
-               write(5483, *) S_uvw_w2(:, nmw1)
-            enddo
-         endif
-# endif
 
 
 # ifdef BSA_USE_SVD_METHOD
@@ -687,17 +669,6 @@ contains
                ERRMSG, 'Error applying SVD to S_uvw_w2. Exit code  ', info
             call bsa_Abort()
          endif
-
-
-# ifdef _BSA_CHECK_NOD_COH_SVD
-         if (itc == 1) then
-            write(5484, *) NNODESL
-            write(5484, *) D_S_uvw_w2
-            do nmw1 = 1, NNODESL
-               write(5484, *) S_uvw_w2(:, nmw1)
-            enddo
-         endif
-# endif
 
 #endif  ! BSA_USE_POD_DATA_CACHING
 
@@ -793,11 +764,6 @@ contains
                ERRMSG, 'Error applying SVD to S_uvw_w1w2. Exit code  ', info
             call bsa_Abort()
          endif
-
-
-#ifdef _BSA_CHECK_NOD_COH_SVD
-         goto 99
-#endif
 
 
          if (do_trunc_POD_) then

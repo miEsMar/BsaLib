@@ -82,15 +82,11 @@ contains
 #endif
 
 
-#ifdef _BSA_CHECK_NOD_COH_SVD
-      goto 998
-#else
       if (is_only_premesh_) then
          print '(1x, 2a)', &
             NOTEMSG, 'Skipping Post-meshing phase!'
          goto 998
       endif
-#endif
 
 
       ! ! post-meshing -> BRM
@@ -333,53 +329,8 @@ contains
 
 
       ! NOTE: use static module variable msh_ZoneLimsInterestModes 
-      !       so that we can reuse in post-meshing phase. 
+      !       so that we can reuse in post-meshing phase.
       call prefetchZoneLimits_(base_i / 2, limits, policies, NLims, msh_ZoneLimsInterestModes)
-
-
-#ifdef _BSA_CHECK_NOD_COH_SVD
-      block
-         double precision :: tmpv(1, NNODESL)
-
-         call wd%getFull2DNodCorrMat(NNODES, nod_corr_full_)
-         if (allocated(nod_corr_full_)) then
-            allocate(nod_corr_EVLs_(NNODESL))
-            allocate(nod_corr_EVTs_(NNODESL, NNODESL))
-
-            nod_corr_full_ = nod_corr_full_(struct_data%n_load_, struct_data%n_load_)
-            nod_corr_EVTs_ = nod_corr_full_
-
-            call dgesvd(&
-               'O' &           ! min(M,N) columns of U are overwritten on array A (saves memory)
-               , 'N' &           ! no rows of V are computed
-               , NNODESL    &    ! n. of rows M
-               , NNODESL    &    ! n. of cols N
-               , nod_corr_EVTs_ &! A matrix (overwritten with left-singular vectors)
-               , NNODESL    &
-               , nod_corr_EVLs_ &! singular values
-               , tmpv       &    ! U
-               , 1          & 
-               , tmpv       &    ! VT
-               , 1          &
-               , MSHR_SVD_WORK  &
-               , MSHR_SVD_LWORK &
-               , MSHR_SVD_INFO  &
-            )
-            if (MSHR_SVD_INFO /= 0) call bsa_Abort("Error while computing SVD of nodal correlation")
-
-            write(4397, *) NNODESL
-            do iost = 1, NNODESL
-               write(4397, *) nod_corr_full_(:, iost)
-            enddo
-
-            write(4398, *) NNODESL
-            write(4398, *) nod_corr_EVLs_
-            do iost = 1, NNODESL
-               write(4398, *) nod_corr_EVTs_(:, iost)
-            enddo
-         endif
-      end block
-#endif
 
 
       !===================================================================================
@@ -455,14 +406,9 @@ contains
       if (.not. allocated(limits)) goto 998  ! NOTE: BKG zone covers them all, bad..
 
 
-#define __return_debug__ goto 998
-#ifdef _BSA_CHECK_NOD_COH_SVD
-      __return_debug__
-#endif
-
-
+      ! **********************************************
       ! ALL OTHER ZONES (IF NOT BKG COVERS EVERYTHING)
-
+      ! **********************************************
       write(*, '(1x, 2a, /, 10(" ", f10.4))') &
          INFOMSG, '  Limits frontiers:', limits
       write(*, *) ''
