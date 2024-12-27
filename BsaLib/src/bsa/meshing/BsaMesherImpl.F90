@@ -584,16 +584,6 @@ contains
                   endif
                   int_modes_ = msh_ZoneLimsInterestModes(iim + 1  :  iim + nim)
 
-#ifdef BSA_DEBUG
-# ifdef _OPENMP
-                  !$omp critical
-# endif
-                  if (idir == 1) print *, int_modes_
-# ifdef _OPENMP
-                  !$omp end critical
-# endif
-#endif
-
                   ! set current zone interest modes pointer (before update)
                   call rz%setInterestModeIndexPtr(iim)
                   iim  = iim + nim + 1
@@ -668,6 +658,12 @@ contains
 #endif
          inter_modes_(NLimsP1) = id_im_last
 
+
+#ifdef BSA_DEBUG
+         print '(2a)', INFOMSG, "Interest modes:"
+         print *, int_modes_
+         print *
+#endif
 
          print '(1x, 2a, i0, a/)', &
             INFOMSG, 'Done with   ', msh_NZones, '  pre meshing zones.'
