@@ -129,7 +129,7 @@ contains
          , NNODESL &
          , tmpv    &
          , tmp1arr &    ! U array
-         , 1       & 
+         , 1       &
          , tmp1arr &
          , 1       &
          , optWork &
@@ -417,7 +417,7 @@ contains
                         ( &
                            (tmp1 * akU(ilk, 1)) + &
                            (tmp2 * akU(ilk, 1)) + &
-                           (tmp3 * ak (ilk, 1))   & 
+                           (tmp3 * ak (ilk, 1))   &
                         )
 
 
@@ -629,7 +629,7 @@ contains
             , NNODESL    &
             , D_S_uvw_w1 &    ! singular values
             , tmpv       &    ! U
-            , 1          & 
+            , 1          &
             , tmpv       &    ! VT
             , 1          &
             , work_arr, lwork, info)
@@ -707,7 +707,7 @@ contains
          , NNODESL    &
          , D_S_uvw_w1 &    ! singular values
          , tmpv       &    ! U
-         , 1          & 
+         , 1          &
          , tmpv       &    ! VT
          , 1          &
          , work_arr, lwork, info)
@@ -750,7 +750,7 @@ contains
             , NNODESL      &
             , D_S_uvw_w1w2 &    ! singular values
             , tmpv         &    ! U
-            , 1            & 
+            , 1            &
             , tmpv         &    ! VT
             , 1            &
             , work_arr, lwork, info)
@@ -1317,7 +1317,7 @@ contains
       real(bsa_real_t), allocatable :: BF_ijk_IJK_w_w2(:), tmp1(:), tmp2(:), tmp3(:)
 
       character(len = 256) :: emsg
-      !========================================================================                                 
+      !========================================================================
 
       f_abs = abs(f)
 
@@ -1645,7 +1645,7 @@ contains
          if (settings%i_compute_bisp_ == 1) then
             h_tmp = Hr_w1w2(:, :, imk)
             h_tmp2= Hi_w1w2(:, :, imk)
-         endif 
+         endif
 
          do imj = 1, NMODES_EFF
 
@@ -1738,7 +1738,7 @@ contains
       ! modes related
       integer(int32) :: im
 
-      ! 
+      !
       ! real(bsa_real_t) :: S_N_curr(settings%nfreqs_)
       real(bsa_real_t), allocatable :: Suvw_N_T(:, :), BF_ijk_III_w1w2(:, :)
       real(bsa_real_t), allocatable :: tmp1(:, :), tmp2(:, :), tmp3(:, :)
