@@ -27,9 +27,6 @@
 #endif
 
 
-#define RK bsa_real_t
-
-
 ! #define __zone_layout_validation__
 #if defined(BSA_DEBUG) && !(defined(__zone_layout_validation__))
 #  define __zone_layout_validation__
@@ -99,26 +96,26 @@ __mod_sub_compute subroutine __sub_name_compute(this)
 #ifndef BSA_USE_POD_DATA_CACHING
 
 ! === Common declarations
-      integer(int32) :: i, j
-      integer(int32) :: i_bfm, zNp
-      real(RK)       :: ctr_infl, brd_infl, vtx_infl
-      real(RK)       :: dfIi, dfIj, dfJi, dfJj
-      real(RK), dimension(1), target :: base_fi, base_fj, fi, fj
-      real(RK), allocatable          :: bfm(:, :)
+      integer(int32)   :: i, j
+      integer(int32)   :: i_bfm, zNp
+      real(bsa_real_t) :: ctr_infl, brd_infl, vtx_infl
+      real(bsa_real_t) :: dfIi, dfIj, dfJi, dfJj
+      real(bsa_real_t), dimension(1), target :: base_fi, base_fj, fi, fj
+      real(bsa_real_t), allocatable          :: bfm(:, :)
 
 # ifdef _BSA_M3MF_ONLY_PREMESH
 #   ifdef __triang_zone__
-      real(RK) :: dw, vtx_infl_t
+      real(bsa_real_t) :: dw, vtx_infl_t
 #   else
-      real(RK) :: dwI, dwJ
+      real(bsa_real_t) :: dwI, dwJ
 #   endif
 
-      real(RK), allocatable :: intg(:)
+      real(bsa_real_t), allocatable :: intg(:)
 
 ! #   define __local_debug_write__
 #   ifdef __local_debug_write__
       integer(int32), save  :: iun = 430000
-      real(RK), allocatable :: fi_v_save_(:), fj_v_save_(:)
+      real(bsa_real_t), allocatable :: fi_v_save_(:), fj_v_save_(:)
 #   endif
 # endif  ! _BSA_M3MF_ONLY_PREMESH
 ! === Common declarations
@@ -127,7 +124,7 @@ __mod_sub_compute subroutine __sub_name_compute(this)
 
 # ifdef __triang_zone__
       integer(int32) :: Np_m1, Nj_m1
-      real(RK)       :: df_CA, df_CST
+      real(bsa_real_t)       :: df_CA, df_CST
 #  ifdef __zone_layout_validation__
       type(MPoint_t) :: pt
 #  endif
@@ -211,7 +208,7 @@ __mod_sub_compute subroutine __sub_name_compute(this)
       base_fj(1) = this%Ipt_%freqJ()
 # endif
       block
-         real(RK) :: rtmp
+         real(bsa_real_t) :: rtmp
 
          if     (this%rot_ < CST_PId2)   then  ! < 90
          elseif (this%rot_ < CST_PIGREC) then  ! < 180
@@ -488,7 +485,7 @@ end subroutine __sub_name_compute
       !
       class(__this_type), intent(inout) :: this
 #ifndef BSA_USE_POD_DATA_CACHING
-      real(RK), intent(in)          :: bfm_undump(:, :)
+      real(bsa_real_t), intent(in)          :: bfm_undump(:, :)
 #endif
       class(*), pointer, intent(in) :: pdata
 
@@ -507,15 +504,15 @@ end subroutine __sub_name_compute
       integer(int32)  :: n_pts_bfm_ref_i_, n_pts_bfm_ref_j_
       integer(int32)  :: pIcurr, pIprev, pJhead, pJtail     ! HTPC indexes
 
-      real(RK)        :: dfIi_bfm_lv0_, dfIj_bfm_lv0_, dfJi_bfm_lv0_, dfJj_bfm_lv0_
-      real(RK)        :: dfIi_bfm_ref_, dfIj_bfm_ref_, dfJi_bfm_ref_, dfJj_bfm_ref_
-      real(RK)        :: dfI_bfm_lv0_, dfJ_bfm_lv0_, dfI_bfm_ref_, dfJ_bfm_ref_
-      real(RK)        :: dfIi_brm_interp, dfIj_brm_interp, dfJi_brm_interp, dfJj_brm_interp
-      real(RK)        :: dfI_brm_interp_, dfJ_brm_interp_
-      real(RK)        :: vtx_infl, brd_infl, ctr_infl
+      real(bsa_real_t)        :: dfIi_bfm_lv0_, dfIj_bfm_lv0_, dfJi_bfm_lv0_, dfJj_bfm_lv0_
+      real(bsa_real_t)        :: dfIi_bfm_ref_, dfIj_bfm_ref_, dfJi_bfm_ref_, dfJj_bfm_ref_
+      real(bsa_real_t)        :: dfI_bfm_lv0_, dfJ_bfm_lv0_, dfI_bfm_ref_, dfJ_bfm_ref_
+      real(bsa_real_t)        :: dfIi_brm_interp, dfIj_brm_interp, dfJi_brm_interp, dfJj_brm_interp
+      real(bsa_real_t)        :: dfI_brm_interp_, dfJ_brm_interp_
+      real(bsa_real_t)        :: vtx_infl, brd_infl, ctr_infl
 #ifdef __triang_zone__
-      real(RK)        :: df_cst, df_diag_old, df_diag_bfm_ref
-      real(RK)        :: df_diag_brm_interp, dw_cst, dfJ_oldtmp
+      real(bsa_real_t)        :: df_cst, df_diag_old, df_diag_bfm_ref
+      real(bsa_real_t)        :: df_diag_brm_interp, dw_cst, dfJ_oldtmp
 #  define __vtx_infl_r  vtx_infl
 #  define __brd_infl_r  brd_infl
 #  define __ctr_infl_r  ctr_infl
@@ -523,7 +520,7 @@ end subroutine __sub_name_compute
 #  define __vtx_infl_t  (vtx_infl / 2)
 
 #else
-      real(RK)        :: dwI, dwJ
+      real(bsa_real_t)        :: dwI, dwJ
       integer(int32)  :: i_fct, j_fct
 
       integer(int32), allocatable :: inter_modes_(:) ! interest modes
@@ -541,13 +538,13 @@ end subroutine __sub_name_compute
       integer(int32) :: i_bfm_interpJ
 
       ! freqs
-      real(RK) :: fi_baseptI, fj_baseptI
-      real(RK), target  :: fi(1), fj(1), fi_baseptJ(1), fj_baseptJ(1)
-      real(RK), pointer :: fi_ptr(:) => null(), fj_ptr(:) => null()
+      real(bsa_real_t) :: fi_baseptI, fj_baseptI
+      real(bsa_real_t), target  :: fi(1), fj(1), fi_baseptJ(1), fj_baseptJ(1)
+      real(bsa_real_t), pointer :: fi_ptr(:) => null(), fj_ptr(:) => null()
 #ifdef __new_interp_proc__
-      real(RK), allocatable :: fi_v_(:), fj_v_(:)
+      real(bsa_real_t), allocatable :: fi_v_(:), fj_v_(:)
 # ifdef BSA_USE_POD_DATA_CACHING
-      real(RK), allocatable :: bfm_undump(:, :)
+      real(bsa_real_t), allocatable :: bfm_undump(:, :)
       integer(int32) :: i_bfm
 #   ifdef __triang_zone__
       integer(int32) :: i_bfm_offs
@@ -555,15 +552,15 @@ end subroutine __sub_name_compute
 # endif
 #endif ! __new_interp_proc__
 
-      real(RK), allocatable :: bfm_new_left(:, :), bfm_new_right(:, :)
-      real(RK), allocatable :: bfm_interp(:, :)
+      real(bsa_real_t), allocatable :: bfm_new_left(:, :), bfm_new_right(:, :)
+      real(bsa_real_t), allocatable :: bfm_interp(:, :)
 
-      real(RK) :: dfJtail, dfJhead, dfIcurr, dfIprev
-      real(RK) :: bfmtail(dimM_bisp_, 1), bfmhead(dimM_bisp_, 1)
+      real(bsa_real_t) :: dfJtail, dfJhead, dfIcurr, dfIprev
+      real(bsa_real_t) :: bfmtail(dimM_bisp_, 1), bfmhead(dimM_bisp_, 1)
 
 #ifdef __update_m3mf__
-      real(RK) :: intg_bfm(dimM_bisp_)
-      real(RK) :: vtx_infl_bfm, brd_infl_bfm, ctr_infl_bfm
+      real(bsa_real_t) :: intg_bfm(dimM_bisp_)
+      real(bsa_real_t) :: vtx_infl_bfm, brd_infl_bfm, ctr_infl_bfm
 
 # ifdef __triang_zone__
 #   define __vtx_infl_r_bfm  vtx_infl_bfm
@@ -588,11 +585,11 @@ end subroutine __sub_name_compute
 #ifdef __local_debug_write__
       integer       :: ifi, ifj
       integer, save :: iun = 430000
-      real(RK), allocatable :: fi_v_save_(:), fj_v_save_(:)
+      real(bsa_real_t), allocatable :: fi_v_save_(:), fj_v_save_(:)
 #endif
 
-      real(RK), allocatable :: brm(:, :)
-      real(RK)              :: intg(dimM_bisp_)
+      real(bsa_real_t), allocatable :: brm(:, :)
+      real(bsa_real_t)              :: intg(dimM_bisp_)
 
 
 
@@ -874,7 +871,7 @@ end subroutine __sub_name_compute
       fj_baseptI = this%Ipt_%freqJ()
 #endif
       block
-         real(RK) :: rtmp
+         real(bsa_real_t) :: rtmp
 
          if     (this%rot_ < CST_PId2)   then  ! < 90
             fi_ptr => fi
