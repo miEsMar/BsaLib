@@ -199,7 +199,8 @@ Currently supported general settings (in order):
 
     Valid values:
     - `1` (classic type);
-    - `2` (mesher type); `3` (both).
+    - `2` (mesher type);
+    - `3` (both).
 
     Default: `1`.
 
