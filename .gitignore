@@ -62,11 +62,7 @@ build*/
 .fortls*
 images/
 My *
-app/**
-!app/*.[fF]90
-!app/CMakeLists.txt
 compile_flags.txt
-resources/cmake/
 tests/
 readme_files/
 resources/
