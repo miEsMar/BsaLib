@@ -408,7 +408,7 @@ contains
 
 #ifdef BSA_DEBUG
          print '(1x, 2a, i5)', INFOMSG, &
-            "Max number of threads available   ", max_num_omp_threads_
+            "Max number of threads available:  ", max_num_omp_threads_
 #endif
       endif
 
