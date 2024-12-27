@@ -482,7 +482,7 @@ contains
       use BsaLib_Data, only: iun_POD_trunc_
 #endif
       real(bsa_real_t), intent(inout), contiguous :: bfm(:, :)
-      real(bsa_real_t), intent(in), contiguous :: fi(:), fj(:)
+      real(bsa_real_t), intent(in),    contiguous :: fi(:), fj(:)
 
 #ifdef BSA_USE_POD_DATA_CACHING
 # define __EGVL_w2 D_S_uvw_w2_ptr
@@ -574,7 +574,7 @@ contains
                wd%getFullNodalPSD(NNODESL, struct_data%n_load_, S_uvw_w2(:, 1, ifj), fj(ifj), 1)
 
 # ifdef BSA_USE_SVD_METHOD
-            call dgesvd(&
+            call POD__(&
                  'O' &                    ! min(M,N) columns of U are overwritten on array A (saves memory)
                , 'N' &                    ! no rows of V are computed
                , NNODESL    &             ! n. of rows M
@@ -583,14 +583,13 @@ contains
                , NNODESL             &
                , D_S_uvw_w2(:, ifj)  &    ! singular values
                , tmpv       &    ! U
-               , 1          & 
+               , 1          &
                , tmpv       &    ! VT
                , 1          &
                , work_arr, lwork, info)
 # else
-            call dsyev('V', 'L', &
-               NNODESL, S_uvw_w2(:, :, ifj), NNODESL, D_S_uvw_w2(:, ifj), &
-                  work_arr, lwork, info)
+            call POD__('V', 'L', &
+               NNODESL, S_uvw_w2(:, :, ifj), NNODESL, D_S_uvw_w2(:, ifj), work_arr, lwork, info)
 # endif
             if (info /= 0) then
                print '(1x, 2a, i0)', &
@@ -699,7 +698,7 @@ contains
 
 # ifdef BSA_USE_SVD_METHOD
       call POD__(&
-            'O' &          ! min(M,N) columns of U are overwritten on array A (saves memory)
+           'O' &           ! min(M,N) columns of U are overwritten on array A (saves memory)
          , 'N' &           ! no rows of V are computed
          , NNODESL    &    ! n. of rows M
          , NNODESL    &    ! n. of cols N
@@ -816,7 +815,7 @@ contains
             ! tmpm1 = matmul(wd%phi_times_A_ndegw_(:, :, tc), eigvp)
             do q = 1, NMODES_EFF
                tmpm1(q, 1) = sum(wd%phi_times_A_ndegw_(q, :, tc) * eigvp(:, 1))
-            enddo 
+            enddo
 
             tmpDp = D_S_uvw_w1(p) ! D_p_w1
 
