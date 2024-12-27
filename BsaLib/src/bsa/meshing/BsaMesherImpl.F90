@@ -187,9 +187,8 @@ contains
       ! check that unit dedicated to dump is not in use already, then, open it
       i   = 1
       iun = IO_BFMDUMP_BASE_UNIT
-      iun_open = .true.
       do
-         do while (iun_open)
+         do
             inquire(unit=iun, opened=iun_open)
             if (.not. iun_open) exit
             iun = iun + 1
