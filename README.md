@@ -1,4 +1,5 @@
 
+# Brief Description
 -------------------
 
 `BsaLib`, a Modern Fortran Library for the Bispectral Stochastic Analysis 
@@ -7,6 +8,7 @@ of structures under non-Gaussian stationary random actions.
 > NOTE: currently, only wind action is included in the library, but other phenomena (waves for instance) can be easily integrated. 
 > See [further developments](#furhter_developments).
 
+-------------------
 
 # License
 
