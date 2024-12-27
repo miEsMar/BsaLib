@@ -589,7 +589,8 @@ contains
                , work_arr, lwork, info)
 # else
             call POD__('V', 'L', &
-               NNODESL, S_uvw_w2(:, :, ifj), NNODESL, D_S_uvw_w2(:, ifj), work_arr, lwork, info)
+                        NNODESL, S_uvw_w2(:, :, ifj), NNODESL, D_S_uvw_w2(:, ifj), &
+                           work_arr, lwork, info)
 # endif
             if (info /= 0) then
                print '(1x, 2a, i0)', &
@@ -654,7 +655,7 @@ contains
             , NNODESL    &
             , D_S_uvw_w2 &    ! singular values
             , tmpv       &    ! U
-            , 1          & 
+            , 1          &
             , tmpv       &    ! VT
             , 1          &
             , work_arr, lwork, info)
