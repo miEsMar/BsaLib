@@ -60,6 +60,11 @@ module BsaLib
 
 
       module subroutine bsa_readInputParamsFromBSAFile()
+         !# <span style="white-space: pre-line">
+         ! Enables deferred reading of formatted file <code>bsa.bsadata</code> 
+         ! at runtime, even if all APIs to set BSA related setting parameters 
+         ! are called before <code>[[bsalib(module):bsa_run(interface)]]</code>
+         ! </span>
       end subroutine
 
 
