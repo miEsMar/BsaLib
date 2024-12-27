@@ -18,12 +18,11 @@ submodule(BsaLib_Functions) BsaLib_FunctionsImpl
    use BsaLib_Utility
    use BsaLib_IO
    use BsaLib_CONSTANTS, only: INFOMSG, WARNMSG, ERRMSG, MSGCONT, DBGMSG, NOTEMSG
-   use BsaLib_Data,      only: bsa_Abort &
-      , do_trunc_POD_, POD_trunc_lim_ &
-#ifdef _BSA_EXPORT_POD_TRUNC_INFO
-      , do_export_POD_trunc_ &
-#endif
-      , nPODmodes_set_, nmodes_POD_
+   use BsaLib_Data,      only: bsa_Abort  &
+                              , do_trunc_POD_, POD_trunc_lim_     &
+                              , do_export_POD_info_               &
+                              , do_export_POD_trunc_              &
+                              , nPODmodes_set_, nmodes_POD_
    implicit none (type, external)
 
 
@@ -472,15 +471,13 @@ contains
 
 
    module subroutine getFM_full_tm_scalar_msh_POD_(bfm, fi, fj)
-#ifdef _BSA_EXPORT_POD_TRUNC_INFO
-# ifdef _OPENMP
+#ifdef _OPENMP
       !$ use omp_lib, only: omp_get_thread_num
-#  define __export_POD_trunc_id__  omp_get_thread_num()+1
-# else
-#  define __export_POD_trunc_id__  1
-# endif
-      use BsaLib_Data, only: iun_POD_trunc_
+# define __export_POD_trunc_id__  omp_get_thread_num()+1
+#else
+# define __export_POD_trunc_id__  1
 #endif
+use BsaLib_Data, only: iun_POD_trunc_, do_export_POD_info_
       real(bsa_real_t), intent(inout), contiguous :: bfm(:, :)
       real(bsa_real_t), intent(in),    contiguous :: fi(:), fj(:)
 
@@ -789,18 +786,18 @@ contains
          endif
 
 
-#ifdef _BSA_EXPORT_POD_TRUNC_INFO
-         if (itc == 1 .and. do_export_POD_trunc_(__export_POD_trunc_id__)) then
-            !$omp critical
-            write(iun_POD_trunc_) int(__export_POD_trunc_id__, kind=int32)
-            write(iun_POD_trunc_) size(fj)
-            write(iun_POD_trunc_) real(fj, kind=real64)
-            write(iun_POD_trunc_) int(size(D_S_uvw_w2), kind=int32)
-            write(iun_POD_trunc_) D_S_uvw_w2
-            !$omp end critical
+         if (do_export_POD_info_) then
+            if (itc == 1 .and. do_export_POD_trunc_(__export_POD_trunc_id__)) then
+               !$omp critical
+               write(iun_POD_trunc_) int(__export_POD_trunc_id__, kind=int32)
+               write(iun_POD_trunc_) size(fj)
+               write(iun_POD_trunc_) real(fj, kind=real64)
+               write(iun_POD_trunc_) int(size(D_S_uvw_w2), kind=int32)
+               write(iun_POD_trunc_) D_S_uvw_w2
+               !$omp end critical
+            endif
          endif
          ! NOTE: we could place a barrier ?
-#endif
 
 
          ! 5-2-2, 2-2-5 (6-3-3, 3-3-6) (7-4-4, 4-4-7)

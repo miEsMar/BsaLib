@@ -41,9 +41,8 @@ __mod_sub_compute subroutine __sub_name_compute(this)
 #ifdef _BSA_M3MF_ONLY_PREMESH
       , settings, m3mf_msh_ptr_  &
 #endif
-#ifdef _BSA_EXPORT_POD_TRUNC_INFO
+      , do_export_POD_info_      &
       , do_export_POD_trunc_     &
-#endif
 #ifndef BSA_USE_POD_DATA_CACHING
       , dimM_bisp_, msh_bfmpts_pre_ &
 #endif
@@ -55,13 +54,11 @@ __mod_sub_compute subroutine __sub_name_compute(this)
 
 #undef __mod_sub_compute
 
-#ifdef _BSA_EXPORT_POD_TRUNC_INFO
-# ifdef _OPENMP
+#ifdef _OPENMP
       !$ use omp_lib, only: omp_get_thread_num
-#  define __export_POD_trunc_id__  omp_get_thread_num()+1
-# else
-#  define __export_POD_trunc_id__  1
-# endif
+# define __export_POD_trunc_id__  omp_get_thread_num()+1
+#else
+# define __export_POD_trunc_id__  1
 #endif
 
 #ifdef BSA_USE_POD_DATA_CACHING
@@ -279,10 +276,10 @@ __mod_sub_compute subroutine __sub_name_compute(this)
 
 
 # ifndef __triang_zone__
-#   ifdef _BSA_EXPORT_POD_TRUNC_INFO
-      do_export_POD_trunc_(__export_POD_trunc_id__) = .false.
-#   undef __export_POD_trunc_id__
-#   endif
+      if (do_export_POD_info_) then
+         do_export_POD_trunc_(__export_POD_trunc_id__) = .false.
+      endif
+#  undef __export_POD_trunc_id__
 # endif
 
 

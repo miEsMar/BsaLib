@@ -371,6 +371,17 @@ module BsaLib
 
 
 
+      module subroutine bsa_exportPODInfo()
+         !# <span style="white-space: pre-line">
+         ! Enables runtime exporting of POD truncation information.
+         ! This might serve to extract information about how much energy 
+         ! each POD mode captures, at the various frequencies.
+         !
+         ! </span>
+      end subroutine
+
+
+
 
 
       module subroutine bsa_Run(m2mf_cls, m2mr_cls, m2o2mr_cls, m3mf_msh, m3mr_msh, m3mf_cls, m3mr_cls)
@@ -1028,7 +1039,8 @@ module BsaLib
       module subroutine bsa_setModalInfo(ndofs, nm, Phi, natf)
          !# <span style="white-space: pre-line">
          ! Provides info about structural modal vibrations.
-         ! Namely, the structural modal matrix \(\boldsymbol{\Phi}\) (eigenmatrix) <code>Phi</code> and the relative natural frequencies \(\mathbf{f}\) (eigenvalues) <code>natf</code>.
+         ! Namely, the structural modal matrix \(\boldsymbol{\Phi}\) (eigenmatrix) <code>Phi</code>
+         ! and the relative natural frequencies \(\mathbf{f}\) (eigenvalues) <code>natf</code>.
          !
          ! @note
          ! As a layer of internal verification and correctness checks, this API call forces to specify

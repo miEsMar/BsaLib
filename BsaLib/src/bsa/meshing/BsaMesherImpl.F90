@@ -327,7 +327,7 @@ contains
       max_ext = getMaxSpaceExtension_() ! Get max point in space to reach
 
 
-      ! NOTE: use static module variable msh_ZoneLimsInterestModes 
+      ! NOTE: use static module variable msh_ZoneLimsInterestModes
       !       so that we can reuse in post-meshing phase.
       call prefetchZoneLimits_(base_i / 2, limits, policies, NLims, msh_ZoneLimsInterestModes)
 
@@ -384,18 +384,33 @@ contains
       if (.not. abs(df_I_ref - df_J_ref) < MACHINE_PRECISION) &
          call bsa_Abort("Freq deltas of BKG peak zone differ. Should be the same.")
 
-#ifdef _BSA_EXPORT_POD_TRUNC_INFO
 
-# ifdef _OPENMP
-#  define __export_POD_trunc_id__  omp_get_thread_num()+1
-# else
-#  define __export_POD_trunc_id__  1
-# endif
-
-      allocate(do_export_POD_trunc_(16))
-      do_export_POD_trunc_    = .false.
-      do_export_POD_trunc_(1) = .true.  ! <-- NO OMP parall here regardless.
+#ifdef _OPENMP
+# define __export_POD_trunc_id__  omp_get_thread_num()+1
+      max_num_omp_threads_ = omp_get_max_threads()
+      if (0_bsa_int_t == max_num_omp_threads_) then
+         call bsa_Abort("omp_get_max_threads()  has returned 0.")
+      endif
+#else
+# define __export_POD_trunc_id__  1
 #endif
+      if (do_export_POD_info_) then
+         open(unit=iun_POD_trunc_       &
+            , file=iun_POD_trunc_fname_ &
+            , status=IO_STATUS_REPLACE  &
+            , form=IO_FORM_UNFORMATTED  &
+            , access=IO_ACCESS_STREAM   &
+            , action=IO_ACTION_WRITE )
+
+         allocate(do_export_POD_trunc_(max_num_omp_threads_))
+         do_export_POD_trunc_    = .false.
+         do_export_POD_trunc_(1) = .true.  ! <-- NO OMP parall region in BKG zone regardless.
+
+#ifdef BSA_DEBUG
+         print '(1x, 2a, i5)', INFOMSG, &
+            "Max number of threads available   ", max_num_omp_threads_
+#endif
+      endif
 
       call bkgz%compute()
 #ifndef BSA_USE_POD_DATA_CACHING
@@ -461,7 +476,6 @@ contains
          real(bsa_real_t), allocatable   :: rots(:)
          real(bsa_real_t), allocatable   :: deltas(:, :)
          integer(bsa_int_t), allocatable :: refmts(:, :), inter_modes_(:)
-         integer(bsa_int_t), allocatable :: int_modes_(:)
          real(bsa_real_t) :: rval
 
          !> general rectangular zone
@@ -538,9 +552,7 @@ contains
          !$omp          , NMODES, NMODES_EFF, MODES &
          !$omp          , NPSDEL, NTCOMPS, NDIRS, TCOMPS, DIRS          &
          !$omp          , MSHR_SVD_INFO, MSHR_SVD_LWORK, MSHR_SVD_WORK  &
-# ifdef _BSA_EXPORT_POD_TRUNC_INFO
-         !$omp          , do_export_POD_trunc_   &
-# endif
+         !$omp          , do_export_POD_info_, do_export_POD_trunc_     &
          !$omp          , msh_NZones, msh_bfmpts_pre_, msh_max_zone_NPts, m3mf_msh_ptr_), &
          !$omp   num_threads(n_dirs_)
          do idir = 1, n_dirs_
@@ -582,7 +594,6 @@ contains
                      iim = iim + 1
                      nim = msh_ZoneLimsInterestModes(iim)
                   endif
-                  int_modes_ = msh_ZoneLimsInterestModes(iim + 1  :  iim + nim)
 
                   ! set current zone interest modes pointer (before update)
                   call rz%setInterestModeIndexPtr(iim)
@@ -610,9 +621,13 @@ contains
                endif
 ! #endif
 
-#ifdef _BSA_EXPORT_POD_TRUNC_INFO
-               if (idir == 1 .or. idir == 3) do_export_POD_trunc_(__export_POD_trunc_id__) = .true.
-#endif
+               if (do_export_POD_info_) then
+                  if (idir == 1 .or. idir == 3) then
+                     do_export_POD_trunc_(__export_POD_trunc_id__) = .true.
+                  else
+                     do_export_POD_trunc_(__export_POD_trunc_id__) = .false.
+                  endif
+               endif
                call rz%compute()
 #ifndef BSA_USE_POD_DATA_CACHING
                n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
@@ -636,9 +651,14 @@ contains
             endif
 ! #endif
 
-#ifdef _BSA_EXPORT_POD_TRUNC_INFO
-            if (idir == 1 .or. idir == 3) do_export_POD_trunc_(__export_POD_trunc_id__) = .true.
-#endif
+            if (do_export_POD_info_) then
+               if (idir == 1 .or. idir == 3) then
+                  do_export_POD_trunc_(__export_POD_trunc_id__) = .true.
+               else
+                  do_export_POD_trunc_(__export_POD_trunc_id__) = .false.
+               endif
+            endif
+
             call rz%compute()
 #ifndef BSA_USE_POD_DATA_CACHING
             n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
@@ -659,21 +679,15 @@ contains
          inter_modes_(NLimsP1) = id_im_last
 
 
-#ifdef BSA_DEBUG
-         print '(2a)', INFOMSG, "Interest modes:"
-         print *, int_modes_
-         print *
-#endif
-
          print '(1x, 2a, i0, a/)', &
             INFOMSG, 'Done with   ', msh_NZones, '  pre meshing zones.'
 
 
-#ifdef _BSA_EXPORT_POD_TRUNC_INFO
-         ! From now on, no need for this anymore.
-         do_export_POD_trunc_(:) = .false.
-#endif
 
+         ! From now on, no need for this anymore.
+         if (do_export_POD_info_) then
+            do_export_POD_trunc_ = .false.
+         endif
 
 
          if (ipre_mesh_type == BSA_PREMESH_TYPE_DIAG_CREST_NO) then
@@ -1271,7 +1285,6 @@ contains
          if (allocated(rots))   deallocate(rots)
          if (allocated(deltas)) deallocate(deltas)
          if (allocated(refmts)) deallocate(refmts)
-         if (allocated(int_modes_))   deallocate(int_modes_)
          if (allocated(inter_modes_)) deallocate(inter_modes_)
       endblock
 

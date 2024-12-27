@@ -69,7 +69,14 @@ contains
       character(len = 256) :: emsg
 
 
-      call bsa_openFileHandles_()
+      ! Open BSA DEBUG unit
+      call io_getVerifiedFile(unit_debug_, BSA_DEBUG_FNAME)
+      open(unit=unit_debug_          &
+         , file=BSA_DEBUG_FNAME      &
+         , status=IO_STATUS_REPLACE  &
+         , form=IO_FORM_FORMATTED    &
+         , action=IO_ACTION_WRITE )
+
 
       !! Fixes non-standard use of "non-intrinsic generic function reference"
       !! in module variable initialisation.
@@ -125,6 +132,9 @@ contains
    end subroutine
 
 
+   module subroutine bsa_exportPODInfo()
+      do_export_POD_info_ = .true.
+   end subroutine
 
 
    module subroutine bsa_enableVisualMode()
@@ -1547,29 +1557,6 @@ contains
 !=========================================================================================
 !=========================================================================================
 !=========================================================================================
-
-
-   subroutine bsa_openFileHandles_()
-      !! BUG: not really adapted to logic...
-
-      ! DEBUG unit
-      call io_getVerifiedFile(unit_debug_, BSA_DEBUG_FNAME)
-      open(unit=unit_debug_          & 
-         , file=BSA_DEBUG_FNAME      &
-         , status=IO_STATUS_REPLACE  &
-         , form=IO_FORM_FORMATTED    &
-         , action=IO_ACTION_WRITE )
-
-#ifdef _BSA_EXPORT_POD_TRUNC_INFO
-      open(unit=iun_POD_trunc_       &
-         , file=iun_POD_trunc_fname_ &
-         , status=IO_STATUS_REPLACE  &
-         , form=IO_FORM_UNFORMATTED  &
-         , access=IO_ACCESS_STREAM   &
-         , action=IO_ACTION_WRITE )
-#endif
-   end subroutine
-
 
 
 

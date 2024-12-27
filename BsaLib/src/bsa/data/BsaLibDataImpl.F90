@@ -125,10 +125,10 @@ contains
       inquire(unit = un_export_bisp_msh_, opened = isopn)
       if (isopn) close(un_export_bisp_msh_)
 
-#ifdef _BSA_EXPORT_POD_TRUNC_INFO
-      inquire(unit = iun_POD_trunc_, opened = isopn)
-      if (isopn) close(iun_POD_trunc_)
-#endif
+      if (do_export_POD_info_) then
+         inquire(unit=iun_POD_trunc_, opened=isopn)
+         if (isopn) close(iun_POD_trunc_)
+      endif
    end subroutine
 
 

@@ -83,6 +83,9 @@ module BsaLib_Data
    !> If false, does not run BsaLib.
    logical :: do_run_bsalib_ = .true.
 
+   !> Keeps track of max n. of OMP threads. 1 (main) thread by default.
+   integer(bsa_int_t) :: max_num_omp_threads_ = 1_bsa_int_t
+
 
 ! **********************************************************************
 !   Exporting control data
@@ -291,13 +294,13 @@ module BsaLib_Data
    logical          :: nPODmodes_set_ = .false.
 
    !> N. of POD modes to be kept
-   integer(bsa_int_t) :: nmodes_POD_    = 0_int32
+   integer(bsa_int_t) :: nmodes_POD_  = 0_int32
 
-#ifdef _BSA_EXPORT_POD_TRUNC_INFO
+   !> If .true., exports POD truncation info to a file.
+   logical :: do_export_POD_info_ = .false.
    logical, allocatable :: do_export_POD_trunc_(:)    !<-- BUG: this is because of OMP.
    integer(int32),     parameter :: iun_POD_trunc_ = 659_int32
    character(len = *), parameter :: iun_POD_trunc_fname_ = 'POD_trunc_info.txt'
-#endif
 
    ! Mesher function pointer (pre/post meshing)
    procedure(getMshBFM), pointer :: getBFM_msh => null()

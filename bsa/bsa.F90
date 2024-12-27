@@ -545,6 +545,7 @@ contains ! utility procedures
       call bsa_Init()  ! This initialises all necessary instances.
 
       call bsa_readInputParamsFromBSAFile()
+      call bsa_exportPODInfo()
 
       ! NODAL
       call bsa_setTotalNOfNodes(i_nnodes)
