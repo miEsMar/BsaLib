@@ -55,7 +55,7 @@ contains
 #endif
 
 #ifdef BSA_USE_POD_DATA_CACHING
-      print '(1x, 2a/)', NOTEMSG, 'Using version with POD caching.' 
+      print '(1x, 2a/)', NOTEMSG, 'Using version with POD caching.'
 #endif
 
       if (0_int32 /= openBFMDumpFiles_()) call bsa_Abort("Failed to open BFM dump file(s).")
@@ -104,7 +104,7 @@ contains
 
             ! write kept modes, might serve after as well.
             ! NOTE: in fact, nm_eff_ is the VERY FIRST thing which is dumped!
-            !       But, at the very beginning, we don't yet how many modes will be kept, 
+            !       But, at the very beginning, we don't yet how many modes will be kept,
             !       this is why it is done now here.
             write(io_units_bfmdump(1)) struct_data%modal_%modes_
 
@@ -225,7 +225,7 @@ contains
 
 
 
-   !> Computes Pre-meshing phase for BFM, 
+   !> Computes Pre-meshing phase for BFM,
    !> to be stored (dumped) for bRM meshing actual computation
    !>
    !> NOTE: here, we have the same meshing technique
@@ -239,13 +239,13 @@ contains
    !> Regarding the bispectrum computation optimisation,
    !> we have since long time already understood it is a complex subject.
    !> Why? A priori 5D matrices (which might be reshaped 3D)
-   !> 
-   !> What we also know is that, from a specific point of view, 
+   !>
+   !> What we also know is that, from a specific point of view,
    !> to obtain the Bispectrum of modal response for a given structure,
    !> the most expensive operation is the obtainment of the
    !> bispectrum of the relative modal FORCE, from the know input,
    !> which we know being the PSDs of the wind turbulent components u,v,w.
-   !> Why? Because for each triplet (combination) of modes, at each pair of 
+   !> Why? Because for each triplet (combination) of modes, at each pair of
    !> frequencies, the value of the bispectrum of the (triplet of) modal force
    !> is given by the 'projection' of the (FULL) bispectrum of nodal forces
    !> in the modal base (for that specific triplet of modes).
@@ -254,14 +254,14 @@ contains
    !>
    !> Could we do it?
    !>
-   !> We could think so, since by looking at the "classic" shape of a 
+   !> We could think so, since by looking at the "classic" shape of a
    !> bispectrum of a modal response, still referring to the applied load
    !> (turbulent wind loading), we see that it shows one main peak centered
    !> at the origin (0,0) of the frequency space, plus some little 'crests'
    !> on top of the three main axes (w1=0, w2=0, w1=w2).
    !> We could prove this also analytically.
    !> What about the rest? Almost flat, where one could even suppose constness.
-   !> Still, in a "classical" approach values (of BFM) are computed exactly, 
+   !> Still, in a "classical" approach values (of BFM) are computed exactly,
    !> no matter the location in the frequency space w1-w2. It is now clear that,
    !> most of these (EXPENSIVE) operations are useless. Because in those regions
    !> outside the 4 aforementioned we already know that values are almost identical
@@ -271,12 +271,12 @@ contains
    !> at the modal forces stage (for all possible triplets of modes), only what we know
    !> A PRIORI being useful, playing an important role in the estimation of correspondent
    !> value of the bispectra of the relative modal response.
-   !> 
+   !>
    !> What is it? Well, what we said before. The centered main peak, plus
    !> those crests along the three main lines in the Cartesian plane.
-   !> 
+   !>
    !> But how can this be more effective?
-   !> 
+   !>
    subroutine PreMesh()
       real(real64), parameter :: cst_sqrt2d2 = sqrt(2._real64) / 2._real64
 
@@ -434,7 +434,7 @@ contains
          integer(int32), parameter :: N_DIRS_HALF = 3_int32
          integer(int32) :: n_dirs_
 
-         !> Main directions labels 
+         !> Main directions labels
          !> ['NORTH', 'EAST ', 'SOUTH', 'WEST ']
          character(len = 5), parameter  :: DIRS_LABELS(4) = ['NORTH', 'EAST ', 'SOUTH', 'WEST ']
 
@@ -485,7 +485,7 @@ contains
          integer(int32) :: N_THREADS_MIN_
 
 
-         ! 
+         !
          NLimsP1 = NLims + 1
          allocate(rots(NLimsP1))
          rots   = 0._bsa_real_t
@@ -515,7 +515,7 @@ contains
          basePts = [&
             bkgz%getAPoint(), &
             bkgz%Ept_,        &
-            bkgz%getBPoint(), & 
+            bkgz%getBPoint(), &
             bkgz%Ipt_         &
          ]
 
@@ -740,7 +740,7 @@ contains
                   idirP1_ = idir + 1
 
                   ! treat initial opening rect zone
-                  ! NOTE: treat it singularly, since its complete definition 
+                  ! NOTE: treat it singularly, since its complete definition
                   !       will serve as base for definition of later rect zones.
                   write(unit=z_name_, fmt='(a, i0, 3a)') &
                      'Zones in quadrant n.  ', idir, '  (', DIRS_DIAG_LABELS(idir), ')'
@@ -1050,7 +1050,7 @@ contains
                      idrot = 1
 
 
-                     ! Loop over n of (remained) limits 
+                     ! Loop over n of (remained) limits
                      ! NOTE: +1 for that little padding after last peak
                      do ilim = ilim_init_, NLimsP1
 
@@ -1295,7 +1295,7 @@ contains
       if (allocated(zone_title)) deallocate(zone_title)
 
 
-      ! NOTE: Ok, now that premesh has finished, before going to actual meshing, 
+      ! NOTE: Ok, now that premesh has finished, before going to actual meshing,
       !       rewind dump file and rewrite actual needed head information.
       rewind(io_units_bfmdump(1))
       write(io_units_bfmdump(1)) POD_CACHING_FLAG
@@ -1332,7 +1332,7 @@ contains
 #endif
    subroutine Mesh()
       !! Post meshing phase.
-      !! Once data has been dumped from PreMeshing phase, 
+      !! Once data has been dumped from PreMeshing phase,
       !! retrieve and process it.
       !! BFM data is interpolated based on interpolation method.
       !! Supported methods:
@@ -1369,7 +1369,7 @@ contains
 #ifndef BSA_USE_POD_DATA_CACHING
 # ifndef _OPENMP
       ! allocate BFM tmp variable to hold data for at most the zone with max n. of points.
-      ! NOTE: in case of OMP parallelisation, this allocation will be resized internally if 
+      ! NOTE: in case of OMP parallelisation, this allocation will be resized internally if
       !       needed. Otherwise, for serial case, at most  msh_max_zone_NPts  memory needed (once).
       allocate(bfm_undump(dimM_bisp_, ival2), stat=izone_id, errmsg=emsg)
       if (izone_id /= 0) call allocKOMsg('bfm_undump', izone_id, emsg)
@@ -1686,7 +1686,7 @@ contains
                                              ! previous mode's FORTH frontier
 
                ! BUG: check this branch
-               if (NLims_ == 2 .and. pzBF <= limits_(NLims_ - 1)) then  
+               if (NLims_ == 2 .and. pzBF <= limits_(NLims_ - 1)) then
 
                   ! it is actually a FULL COVERAGE meaning that this mode's BACK frontier
                   ! entirely covers previously defined zone (i.e. resonance peak very very close)
@@ -1708,7 +1708,7 @@ contains
 
 
                ! NOTE: since now, for PRE_PEAK zones we use "references"
-               !       to interest modes of ADJACENT PEAK ZONES, 
+               !       to interest modes of ADJACENT PEAK ZONES,
                !       no need to update its list, but only for current peak zone.
 
                ! add an interest mode (NOTE: do not update its index)
@@ -1731,7 +1731,7 @@ contains
 
                ! NOTE: in such case, a NEW INTEREST MODES COUNTING
                !       is initialised, since mode "im" and "im-1"
-               !       are well distant and separated, so not to have 
+               !       are well distant and separated, so not to have
                !       any interaction
                iim = jim + 1
                inter_modes_(iim) = CODE_PRE_PEAK_OK
@@ -1747,8 +1747,8 @@ contains
          enddo ! modes
 
 
-         ! NOTE: appending interest mode (only last) for 
-         !       that little padding zone added after last peak zone, for better shaping 
+         ! NOTE: appending interest mode (only last) for
+         !       that little padding zone added after last peak zone, for better shaping
          !       (and for not losing important info)
          ! BUG: can be removed ??
          iim = jim + 1
