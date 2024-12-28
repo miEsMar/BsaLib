@@ -81,19 +81,20 @@ if ( enable-post-mesh-omp )
 endif()
 
 
-
+# Preprocessing flag
 if (intel-compiler)
-   add_compile_options( -fpp )
-   if ( WIN32 )
-      target_compile_options( ${project} PUBLIC /libs:static )
-      target_compile_options( ${project} PUBLIC $<$<CONFIG:Release>:/MT> )
-      target_compile_options( ${project} PUBLIC $<$<CONFIG:Debug>:/MTd> )
-   else()
-   endif()
+   add_compile_options( $<$<COMPILE_LANGUAGE:Fortran>:-fpp> )
 else()
-   add_compile_options( -cpp )
+   add_compile_options( $<$<COMPILE_LANGUAGE:Fortran>:-cpp> )
 endif()
 
+
+# Link to MSVC runtime libraries.
+# Ignored if compiler does not target MSVC!
+# Taken from https://cmake.org/cmake/help/latest/prop_tgt/MSVC_RUNTIME_LIBRARY.html
+# NOTE: if using shared, append DLL!
+set_property(TARGET ${project} PROPERTY
+   MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 
 # TODO: see if we can manage this better
@@ -120,21 +121,26 @@ endif()
 
 
 if ( enable-openmp )
-   if (WIN32)
-      if (intel-compiler)
-         target_compile_options( ${project} PRIVATE "-Qopenmp" )
-      else()
-         target_compile_options( ${project} PRIVATE "-fopenmp" )
-      endif()
-   else()
+   # NOTE: find_package for OpenMP used to not work on Windows.
+   #       See https://discourse.cmake.org/t/unique-way-to-enable-openmp-with-cmake/10350
+   #       However, it now seems to be fixed using version 3.31.3.
+   #       If using previous version where this still fails, then you need 
+   #       to uncommend the if statement below.
+
+   # # Uncomment this if find_package() fails on Windows.
+   # if (WIN32)
+   #    if (intel-compiler)
+   #       target_compile_options( ${project} PRIVATE "-Qopenmp" )
+   #    else()
+   #       target_compile_options( ${project} PRIVATE "-fopenmp" )
+   #    endif()
+   # else()
       find_package( OpenMP REQUIRED COMPONENTS Fortran )
       target_link_libraries( ${project} PUBLIC OpenMP::OpenMP_Fortran )
-   endif()
+   # endif()
 else()
    if ( intel-compiler )
-      if (WIN32)
-         target_compile_options( ${project} PRIVATE "-assume:nocc_omp" )
-      endif()
+      target_compile_options( ${project} PRIVATE $<IF:${WIN32},-assume:nocc_omp,> )
       target_compile_options( ${project} PRIVATE $<IF:${WIN32},-Qparallel,-parallel> )
    endif()
 endif()
@@ -142,16 +148,16 @@ endif()
 
 
 if ( enable-shared-runtime )
-   message( STATUS "NOTE: Using SHARED runtime libraries!")
+   message( STATUS "NOTE: Using SHARED runtime libraries!" )
 else()
    if (intel-compiler)
       if (WIN32)
-         target_compile_options( ${project} PUBLIC "-libs:static")
+         target_compile_options( ${project} PUBLIC "-libs:static" )
       else()
-         target_compile_options( ${project} PUBLIC "-static")
-         target_compile_options( ${project} PUBLIC "-static-intel")
+         target_compile_options( ${project} PUBLIC "-static" )
+         target_compile_options( ${project} PUBLIC "-static-intel" )
          if (enable-openmp)
-            target_compile_options( ${project} PUBLIC "-qopenmp-link=static")
+            target_compile_options( ${project} PUBLIC "-qopenmp-link=static" )
          endif()
       endif()
    else()
@@ -161,9 +167,9 @@ endif()
 
 
 if (enable-sym-ev-routine)
-   message( STATUS "NOTE: Using 'dsyev'  method")
+   message( STATUS "NOTE: Using 'dsyev'  method" )
 else()
-   message( STATUS "NOTE: Using 'dgesvd' method")
+   message( STATUS "NOTE: Using 'dgesvd' method" )
    target_compile_definitions( ${project} PRIVATE "-DBSA_USE_SVD_METHOD" )
 endif()
 
