@@ -231,19 +231,18 @@ contains
    end subroutine
 
 
-   subroutine print_get_console_cr_str(str)
-      character(len=*), intent(out) :: str
-      ! character(len=32) :: enc_str
-      ! logical :: is_open
 
-      str = achar(27) // '[1F' // achar(27) //'[2K'
-      ! inquire(unit=output_unit, opened=is_open)
-      ! if (is_open) then
-      !    inquire(unit=output_unit, encoding=enc_str)
-      !    if ('utf-8' /= trim(enc_str)) then
-      !       str = " "
-      !    endif
-      ! endif
+   subroutine print_premesh_zone_update(nzones, cr)
+      integer(bsa_int_t), intent(in) :: nzones
+      logical, intent(in) :: cr
+
+      if (cr) then
+         write(*, '(2a)', advance='no') CONSOLE_CR_SEQ, CONSOLE_CR_SEQ
+      endif
+      write(*, '(1x, 2a, i7, a)') &
+         INFOMSG, 'Done with  ', nzones, '  pre-meshing zones.'
+      write(*, '(1x, a, i12, 2x, a, f10.4, " s.")') &
+         MSGCONT, msh_bfmpts_pre_, 'pre-meshing points computed in  ', timing_total()
    end subroutine
 
 
@@ -353,6 +352,11 @@ contains
       !       so that we can reuse in post-meshing phase.
       call prefetchZoneLimits_(base_i / 2, limits, policies, NLims, msh_ZoneLimsInterestModes)
 
+#ifdef BSA_DEBUG
+         write(*, *) '  Interest modes : '
+         write(*, *) msh_ZoneLimsInterestModes
+#endif
+
 
       !===================================================================================
       ! BKG peak
@@ -437,7 +441,6 @@ contains
       call bkgz%compute()
 #ifndef BSA_USE_POD_DATA_CACHING
       te = timing_clock()
-      call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), msh_bfmpts_pre_)
 #endif
 
       if (.not. allocated(limits)) goto 998  ! NOTE: BKG zone covers them all, bad..
@@ -449,6 +452,14 @@ contains
       write(*, '(1x, 2a, /, 10(" ", f10.4))') &
          INFOMSG, '  Limits frontiers:', limits
       write(*, *) ''
+
+
+#ifndef BSA_USE_POD_DATA_CACHING
+      write(*, *) ''
+      write(*, *) ''
+      call print_premesh_zone_update(msh_NZones, .true.)
+#endif
+
 
       block
 
@@ -528,11 +539,6 @@ contains
          ! extend limits and policies to covering after last peak
          limits(NLimsP1)   = maxF
          policies(NLimsP1) = pol
-
-#ifdef BSA_DEBUG
-         write(*, *) '  Interest modes : '
-         write(*, *) msh_ZoneLimsInterestModes
-#endif
 
          ! array of base points from BKG peak reference
          basePts = [&
@@ -687,11 +693,17 @@ contains
             te = timing_clock()
             n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
             !$omp critical
-            call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), n_bfm_pts_pre_)
+            ! call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), n_bfm_pts_pre_)
             !$omp end critical
 #endif
          enddo ! n dirs
          !$omp end parallel do
+
+
+#ifndef BSA_USE_POD_DATA_CACHING
+         call print_premesh_zone_update(msh_NZones, .true.)
+#endif
+
 
          ! BUG: might be removed, code duplication for little CPU improvement..
 #ifndef _OPENMP
@@ -702,11 +714,6 @@ contains
          inter_modes_(NLimsP1) = id_im_last
 
 
-         print '(1x, 2a, i0, a/)', &
-            INFOMSG, 'Done with   ', msh_NZones, '  pre meshing zones.'
-
-
-
          ! From now on, no need for this anymore.
          if (do_export_POD_info_) then
             do_export_POD_trunc_ = .false.
@@ -714,7 +721,6 @@ contains
 
 
          if (ipre_mesh_type == BSA_PREMESH_TYPE_DIAG_CREST_NO) then
-
 
             block
                character(len=1) :: bases_ch(4)
@@ -873,14 +879,12 @@ contains
 #ifndef BSA_USE_POD_DATA_CACHING
                   te = timing_clock()
                   !$omp critical
-                  call logZonePremeshingTotTime_(z_name_, timing_getElapsedSeconds(te, ti), n_bfm_pts_pre_)
+                  ! call logZonePremeshingTotTime_(z_name_, timing_getElapsedSeconds(te, ti), n_bfm_pts_pre_)
                   !$omp end critical
 #endif
                enddo ! idir
                !$omp end parallel do
 
-               print '(1x, 2a, i0, a/)', &
-                  INFOMSG, 'Done with   ', msh_NZones, '  pre meshing zones.'
             end block
 
 
@@ -941,15 +945,17 @@ contains
 #ifndef BSA_USE_POD_DATA_CACHING
                te = timing_clock()
                !$omp critical
-               call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), rz%zoneTotNPts())
+               ! call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), rz%zoneTotNPts())
                !$omp end critical
 #endif
 
             enddo ! idir
             !$omp end parallel do
 
-            print '(1x, 2a, i0, a/)', &
-               INFOMSG, 'Done with   ', msh_NZones, '  pre meshing zones.'
+
+#ifndef BSA_USE_POD_DATA_CACHING
+            call print_premesh_zone_update(msh_NZones, .true.)
+#endif
 
 
             !===================================================
@@ -1213,7 +1219,7 @@ contains
 #ifndef BSA_USE_POD_DATA_CACHING
                      te = timing_clock()
                      !$omp critical
-                     call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), n_bfm_pts_pre_)
+                     ! call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), n_bfm_pts_pre_)
                      !$omp end critical
 #endif
                   endif ! pre mesh mode
@@ -1221,12 +1227,10 @@ contains
                enddo ! idir
                !$omp end parallel do
 
-               print '(1x, 2a, i0, a/)', &
-                  INFOMSG, 'Done with   ', msh_NZones, '  pre meshing zones.'
-
             end block
 
          endif ! ipre_mesh_type
+
 
 
 
@@ -1234,6 +1238,10 @@ contains
          ! EXTERNAL PADDING
          !
          if (.not. warn_zone_over_limits .and. (settings%i_full_coverage_ == 1)) then
+
+#ifndef BSA_USE_POD_DATA_CACHING
+            call print_premesh_zone_update(msh_NZones, .true.)
+#endif
 
             ! BUG: check if it is ok setting this interest modes' pointer.
             call rz%setInterestModeIndexPtr(id_im_last)
@@ -1298,7 +1306,7 @@ contains
 #ifndef BSA_USE_POD_DATA_CACHING
                te = timing_clock()
                !$omp critical
-               call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), rz%zoneTotNPts())
+               ! call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), rz%zoneTotNPts())
                !$omp end critical
 #endif
             enddo ! ndirs
@@ -1306,8 +1314,6 @@ contains
 
          endif ! (.not. warn_zone_over_limits .and. (settings%i_full_coverage_))
 
-         print '(1x, 2a, i0, a/)', &
-            INFOMSG, 'Done with   ', msh_NZones, '  pre meshing zones.'
 
          if (allocated(rots))   deallocate(rots)
          if (allocated(deltas)) deallocate(deltas)
@@ -1317,6 +1323,11 @@ contains
 
 
       998 continue
+#ifndef BSA_USE_POD_DATA_CACHING
+      call print_premesh_zone_update(msh_NZones, .true.)
+      write(*, *) ''
+      write(*, *) ''
+#endif
       if (allocated(limits))     deallocate(limits)
       if (allocated(policies))   deallocate(policies)
       if (allocated(zone_title)) deallocate(zone_title)
@@ -1366,7 +1377,6 @@ contains
       !!    - HTPC : Head-Tail-Previous-Current
       use BsaLib_MZone, only: MZone_t, MZone_ID, UndumpZone
       integer(int32)   :: izone_id, izone_, nzones, izone, ival2, n_threads
-      character(len=8) :: console_cr_str = " "
       class(MZone_t), pointer     :: z => null()
       type(MRectZone_t), target   :: rz
       type(MTriangZone_t), target :: tz
@@ -1406,7 +1416,7 @@ contains
 
 
       call print_pre_post_mesh_header('POST-MESH')
-      call print_get_console_cr_str(console_cr_str)
+
 
       if (do_export_base_) then
          n_threads = 1  ! NOTE: to avoid dead-locks!
@@ -1467,7 +1477,7 @@ contains
 
          izone = izone + 1
          print '( a, 1x, 2a, i6, a, i0 )', &
-            trim(console_cr_str), &
+            CONSOLE_CR_SEQ, &
             INFOMSG, 'Interpolating zone n. ', izone, ', with ID=  ', izone_id
 
          if (izone_id == MZone_ID%RECTANGLE) then

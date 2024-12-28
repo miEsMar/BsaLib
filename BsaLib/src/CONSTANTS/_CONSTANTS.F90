@@ -103,6 +103,7 @@
    character(len = *), parameter :: ERRMSG  = '  --[error]  '
    character(len = *), parameter :: DBGMSG  = '  --[debug]  '
 
+   character(len = *), parameter :: CONSOLE_CR_SEQ = achar(27) // '[1F' // achar(27) // '[2K'
 
 
 !**************************************************************************
