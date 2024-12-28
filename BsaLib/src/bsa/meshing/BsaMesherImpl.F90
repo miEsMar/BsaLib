@@ -223,6 +223,29 @@ contains
 
 
 
+   subroutine print_pre_post_mesh_header(title)
+      character(len=*), intent(in) :: title
+      character(len=*), parameter  :: padding = '********************'
+
+      print '(/ 1x, a, 4x, a9, 4x, a /)', padding, title, padding
+   end subroutine
+
+
+   subroutine print_get_console_cr_str(str)
+      character(len=*), intent(out) :: str
+      ! character(len=32) :: enc_str
+      ! logical :: is_open
+
+      str = achar(27) // '[1F' // achar(27) //'[2K'
+      ! inquire(unit=output_unit, opened=is_open)
+      ! if (is_open) then
+      !    inquire(unit=output_unit, encoding=enc_str)
+      !    if ('utf-8' /= trim(enc_str)) then
+      !       str = " "
+      !    endif
+      ! endif
+   end subroutine
+
 
 
    !> Computes Pre-meshing phase for BFM,
@@ -307,10 +330,7 @@ contains
       write(io_units_bfmdump(1)) iost
 
 
-
-      write(*, '(1x, a)') '-----------------------------------------------------------'
-      write(*, '(1x, a)') '--------------------    PRE - MESH     --------------------'
-      write(*, '(1x, a)') '-----------------------------------------------------------'
+      call print_pre_post_mesh_header('PRE-MESH')
 
 
       ! NOTE: bkg_peak_width_ is already given in [Hz]
@@ -1345,7 +1365,8 @@ contains
       !! Supported methods:
       !!    - HTPC : Head-Tail-Previous-Current
       use BsaLib_MZone, only: MZone_t, MZone_ID, UndumpZone
-      integer(int32) :: izone_id, izone_, nzones, izone, ival2, n_threads
+      integer(int32)   :: izone_id, izone_, nzones, izone, ival2, n_threads
+      character(len=8) :: console_cr_str = " "
       class(MZone_t), pointer     :: z => null()
       type(MRectZone_t), target   :: rz
       type(MTriangZone_t), target :: tz
@@ -1384,9 +1405,8 @@ contains
 #endif
 
 
-      print '(1x, a)', '-----------------------------------------------------------'
-      print '(1x, a)', '--------------------    POST - MESH    --------------------'
-      print '(1x, a)', '-----------------------------------------------------------'
+      call print_pre_post_mesh_header('POST-MESH')
+      call print_get_console_cr_str(console_cr_str)
 
       if (do_export_base_) then
          n_threads = 1  ! NOTE: to avoid dead-locks!
@@ -1446,7 +1466,8 @@ contains
          read(io_units_bfmdump(1)) izone_id   ! fetch zone type ID
 
          izone = izone + 1
-         print '(1x, 2a, i6, a, i0 )', &
+         print '( a, 1x, 2a, i6, a, i0 )', &
+            trim(console_cr_str), &
             INFOMSG, 'Interpolating zone n. ', izone, ', with ID=  ', izone_id
 
          if (izone_id == MZone_ID%RECTANGLE) then
