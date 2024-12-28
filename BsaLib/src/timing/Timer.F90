@@ -15,74 +15,80 @@
 !! along with BsaLib.  If not, see <https://www.gnu.org/licenses/>.
 module BsaLib_Timing
 
-   use, intrinsic :: iso_fortran_env, only: real64
+   use, intrinsic :: iso_fortran_env, only: int64, real64
    implicit none (type, external)
    private
+   public :: timingInit
 
    type, public :: timer_t
       private
-      real(real64) :: t_init_     = 0._real64
-      real(real64) :: t_last_     = 0._real64
-      real(real64) :: t_tot_      = 0._real64
-      real(real64) :: t_tot_prev_ = 0._real64
+      integer(int64) :: t_init_     = 0._int64
+      integer(int64) :: t_last_     = 0._int64
    contains
-      procedure, public, pass(this) :: init  => InitTimer
-      procedure, public, pass(this) :: time  => ClockTimer
-      procedure, public, pass(this) :: total => GetTimerTotal
-      procedure, public, pass(this) :: reset => ResetTimer
+      procedure, public, pass(this)   :: init  => timerInit
+      procedure, public, pass(this)   :: time  => timerTime
+      procedure, public, nopass       :: total => timerGetTotal
+      procedure, public, pass(this)   :: reset => timerReset
    end type timer_t
 
+
+   integer(int64) :: irate_  = 0_int64
+   integer(int64) :: t_start = 0_int64
 
 contains
 
 
-   subroutine InitTimer(this)
+   subroutine timingInit()
+      call system_clock(count_rate=irate_)
+      call system_clock(count=t_start)
+   end subroutine
+
+
+   real(real64) function get_seconds(end, ini) result(secs)
+      integer(int64), intent(in) :: end, ini
+
+      secs = real(end - ini, kind=real64) / real(irate_, kind=real64)
+   end function
+
+
+   subroutine timerInit(this)
       class(timer_t) :: this
 
-      call cpu_time(this%t_init_)
+      call system_clock(count=this%t_init_)
       this%t_last_ = this%t_init_
-   end subroutine InitTimer
+   end subroutine timerInit
 
 
 
-
-   function ClockTimer(this) result(dt)
+   real(real64) function timerTime(this) result(dt)
       class(timer_t) :: this
-      real(real64) :: dt_tmp
-      real(real64) :: dt
+      integer(int64) :: t_now
 
-      call cpu_time(dt_tmp)
-      dt = dt_tmp - this%t_last_
+      call system_clock(count=t_now)
+      dt = get_seconds(t_now, this%t_last_)
 
-      ! update total
-      this%t_tot_ = this%t_tot_ + dt
-
-      ! update last cpu_time call
-      this%t_last_ = dt_tmp
-   end function ClockTimer
+      this%t_last_ = t_now
+   end function timerTime
 
 
 
 
+   real(real64) function timerGetTotal() result(tot)
+      integer(int64) :: t_now
 
-   pure elemental function GetTimerTotal(this) result(tot)
-      class(timer_t), intent(in) :: this
-      real(real64) :: tot
-
-      tot = this%t_tot_
-   end function GetTimerTotal
-
+      call system_clock(count=t_now)
+      tot = get_seconds(t_now, t_start)
+   end function timerGetTotal
 
 
 
-   subroutine ResetTimer(this)
+
+   subroutine timerReset(this)
       class(timer_t) :: this
 
-      this%t_init_     = 0._real64
-      this%t_last_     = 0._real64
-      this%t_tot_      = 0._real64
-      this%t_tot_prev_ = 0._real64
-   end subroutine ResetTimer
+      this%t_init_     = 0._int64
+      this%t_last_     = 0._int64
+   end subroutine timerReset
 
 
 

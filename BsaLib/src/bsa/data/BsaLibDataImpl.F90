@@ -33,6 +33,13 @@ contains
 
 
 
+   subroutine printTotalTime_()
+      print '(/ 1x, 2a, f10.4, " s." /)', &
+         INFOMSG, "Total elapsed time:   ", timer%total()
+   end subroutine
+
+
+
    module subroutine cleanBSAData_()
       integer(int32) :: istat
       character(len = 256) :: emsg
@@ -40,14 +47,8 @@ contains
       if (allocated(wd))          call wd%clean()
       if (allocated(struct_data)) call struct_data%clean()
 
-      ! if (associated(m2mf_cls_ptr_)) nullify(m2mf_cls_ptr_)
-      ! if (associated(m2mr_cls_ptr_)) nullify(m2mr_cls_ptr_)
-      ! if (associated(m3mf_cls_ptr_)) nullify(m3mf_cls_ptr_)
-      ! if (associated(m3mr_cls_ptr_)) nullify(m3mr_cls_ptr_)
-
       if (associated(m3mf_msh_ptr_)) nullify(m3mf_msh_ptr_)
       if (associated(m3mr_msh_ptr_)) nullify(m3mr_msh_ptr_)
-
 
       if (allocated(PHItimesC_local_)) then
          deallocate(PHItimesC_local_, stat=istat, errmsg=emsg)
@@ -84,6 +85,8 @@ contains
          deallocate(struct_data, stat=istat, errmsg=emsg)
          if (istat /= 0) call deallocKOMsg('struct_data', istat, emsg)
       endif
+
+      call printTotalTime_()
 
       if (allocated(timer)) then
          deallocate(timer, stat=istat, errmsg=emsg)

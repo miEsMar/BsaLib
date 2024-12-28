@@ -101,6 +101,8 @@ contains
          allocate(timer, stat=istat, errmsg=emsg)
          if (istat /= 0) call allocKOMsg('timer', istat, emsg)
       endif
+      call timingInit()
+      call timer%init()
    end subroutine
 
 
@@ -205,10 +207,10 @@ contains
       if (.not. header_called_) call bsa_printBSAHeader()
       call io_setExportSpecifiers()
 
-
       block
          character(len = :), allocatable :: fname_cls_, fname_msh_
          integer(bsa_int_t) :: itmp
+
 
          write_brm_fptr_ => exportBRM_void_internal_
          do_export_base_ = is_visual_ .or. &
@@ -292,7 +294,6 @@ contains
 #ifdef BSA_USE_GPU
          is_gpu_enabled_ = .true.
 #endif
-
 
          if (is_gpu_enabled_) then
 #ifdef BSA_USE_GPU
@@ -703,6 +704,7 @@ contains
 
 
    module subroutine bsa_Finalise()
+      if (bsa_isCleaned()) return
       call cleanBSAData_()
    end subroutine bsa_Finalise
 

@@ -980,8 +980,6 @@ contains ! utility procedures
       character(len = 132) :: emsg
       logical :: lflag
 
-      if (.not. bsa_isCleaned()) call bsa_Finalise()
-
       inquire(unit=IUN_EXTDATA, opened=lflag)
       if (lflag) close(IUN_EXTDATA)
       inquire(unit=IUN_BSADATA, opened=lflag)
@@ -1045,8 +1043,8 @@ contains ! utility procedures
       if (istat /= 0) call errDeallocVarMsg_('r_Cg', istat, emsg)
       if (allocated(r_xsist)) deallocate(r_xsist, stat=istat, errmsg=emsg)
       if (istat /= 0) call errDeallocVarMsg_('r_xsist', istat, emsg)
-      ! if (allocated(r_xsiad)) deallocate(r_xsiad, stat=istat, errmsg=emsg)
-      ! if (istat /= 0) call errDeallocVarMsg_('r_xsiad', istat, emsg)
+
+      call bsa_Finalise()
 
       if (iexit == 0) then
          print '(/ 1x, 2a)', INFOMSG, 'BSA terminated correctly.'

@@ -337,7 +337,6 @@ contains
       !
       ! NOTE: we keep it in memory, since it will serve as reference
       !       point for other nearby zones correct identification.
-      call timer%init()
       zone_title = 'BKG center peak'
       bkgz       = MRectZone(0._bsa_real_t, zone_title)
       if (settings%i_bisp_sym_ == BSA_SPATIAL_SYM_HALF) then
