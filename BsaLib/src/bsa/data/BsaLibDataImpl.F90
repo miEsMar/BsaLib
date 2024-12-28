@@ -35,7 +35,7 @@ contains
 
    subroutine printTotalTime_()
       print '(/ 1x, 2a, f10.4, " s." /)', &
-         INFOMSG, "Total elapsed time:   ", timer%total()
+         INFOMSG, "Total elapsed time:   ", timing_total()
    end subroutine
 
 
@@ -87,11 +87,6 @@ contains
       endif
 
       call printTotalTime_()
-
-      if (allocated(timer)) then
-         deallocate(timer, stat=istat, errmsg=emsg)
-         if (istat /= 0) call deallocKOMsg('timer', istat, emsg)
-      endif
 
       is_data_cleaned_ = .true.
 

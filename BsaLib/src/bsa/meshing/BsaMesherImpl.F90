@@ -291,6 +291,8 @@ contains
       type(MRectZone_t) :: bkgz
       character(len = :), allocatable :: zone_title
 
+      integer(int64) :: ti, te
+
 
 #ifdef BSA_DEBUG
       write(unit_debug_, *) ' @BsaMesherImpl::PreMesh() : Init BSA-Mesher pre meshing phase...'
@@ -337,6 +339,7 @@ contains
       !
       ! NOTE: we keep it in memory, since it will serve as reference
       !       point for other nearby zones correct identification.
+      ti = timing_clock()
       zone_title = 'BKG center peak'
       bkgz       = MRectZone(0._bsa_real_t, zone_title)
       if (settings%i_bisp_sym_ == BSA_SPATIAL_SYM_HALF) then
@@ -413,7 +416,8 @@ contains
 
       call bkgz%compute()
 #ifndef BSA_USE_POD_DATA_CACHING
-      call logZonePremeshingTotTime_(zone_title, timer%time(), msh_bfmpts_pre_)
+      te = timing_clock()
+      call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), msh_bfmpts_pre_)
 #endif
 
       if (.not. allocated(limits)) goto 998  ! NOTE: BKG zone covers them all, bad..
@@ -558,7 +562,7 @@ contains
 
             n_bfm_pts_pre_ = 0
 
-            call timer%init()
+            ti = timing_clock()
             zone_title = 'Crest zone at  '//DIRS_LABELS(idir)
 
             ! init rect zone
@@ -660,10 +664,10 @@ contains
 
             call rz%compute()
 #ifndef BSA_USE_POD_DATA_CACHING
+            te = timing_clock()
             n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
-
             !$omp critical
-            call logZonePremeshingTotTime_(zone_title, timer%time(), n_bfm_pts_pre_)
+            call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), n_bfm_pts_pre_)
             !$omp end critical
 #endif
          enddo ! n dirs
@@ -735,7 +739,7 @@ contains
                !$omp   num_threads(n_dirs_)
                do idir = 1, n_dirs_
 
-                  call timer%init()
+                  ti = timing_clock()
                   idirP1_ = idir + 1
 
                   ! treat initial opening rect zone
@@ -847,8 +851,9 @@ contains
                   enddo ! ilim = 2, NLimsP1
 
 #ifndef BSA_USE_POD_DATA_CACHING
+                  te = timing_clock()
                   !$omp critical
-                  call logZonePremeshingTotTime_(z_name_, timer%time(), n_bfm_pts_pre_)
+                  call logZonePremeshingTotTime_(z_name_, timing_getElapsedSeconds(te, ti), n_bfm_pts_pre_)
                   !$omp end critical
 #endif
                enddo ! idir
@@ -894,7 +899,7 @@ contains
             !$omp   num_threads(N_THREADS_MIN_)
             do idir = 1, N_THREADS_MIN_
 
-               call timer%init()
+               ti = timing_clock()
 
                idir_t2 = idir * 2
 
@@ -914,8 +919,9 @@ contains
                call rz%compute()
 
 #ifndef BSA_USE_POD_DATA_CACHING
+               te = timing_clock()
                !$omp critical
-               call logZonePremeshingTotTime_(zone_title, timer%time(), rz%zoneTotNPts())
+               call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), rz%zoneTotNPts())
                !$omp end critical
 #endif
 
@@ -975,7 +981,7 @@ contains
                   n_bfm_pts_pre_ = 0
                   idir_t2        = idir * 2
 
-                  call timer%init()
+                  ti = timing_clock()
                   zone_title = 'Diagonal crest  -  '//DIRS_DIAG_LABELS(idir_t2)
 
                   iim  = 1  ! reset pointer for interest modes
@@ -1185,8 +1191,9 @@ contains
                      endif ! closing triangle, if not warn_zone_over_limits
 
 #ifndef BSA_USE_POD_DATA_CACHING
+                     te = timing_clock()
                      !$omp critical
-                     call logZonePremeshingTotTime_(zone_title, timer%time(), n_bfm_pts_pre_)
+                     call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), n_bfm_pts_pre_)
                      !$omp end critical
 #endif
                   endif ! pre mesh mode
@@ -1255,7 +1262,7 @@ contains
 #endif
             do idir = 1, n_dirs_
 
-               call timer%init()
+               ti = timing_clock()
                zone_title = 'External rect Padding '//DIRS_LABELS(idir)
                call rz%zoneName(zone_title)
 
@@ -1269,8 +1276,9 @@ contains
                call rz%compute()
 
 #ifndef BSA_USE_POD_DATA_CACHING
+               te = timing_clock()
                !$omp critical
-               call logZonePremeshingTotTime_(zone_title, timer%time(), rz%zoneTotNPts())
+               call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), rz%zoneTotNPts())
                !$omp end critical
 #endif
             enddo ! ndirs

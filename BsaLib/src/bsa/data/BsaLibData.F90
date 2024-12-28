@@ -51,7 +51,6 @@ module BsaLib_Data
    type(settings_t),      allocatable, target :: settings
    type(WindData_t),      allocatable, target :: wd
    type(StructureData_t), allocatable, target :: struct_data
-   type(timer_t),         allocatable, target :: timer
 
 
    !> If <code>.true.</code> reads BSA input parameters from

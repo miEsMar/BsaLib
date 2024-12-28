@@ -17,79 +17,40 @@ module BsaLib_Timing
 
    use, intrinsic :: iso_fortran_env, only: int64, real64
    implicit none (type, external)
-   private
-   public :: timingInit
+   public
 
-   type, public :: timer_t
-      private
-      integer(int64) :: t_init_     = 0._int64
-      integer(int64) :: t_last_     = 0._int64
-   contains
-      procedure, public, pass(this)   :: init  => timerInit
-      procedure, public, pass(this)   :: time  => timerTime
-      procedure, public, nopass       :: total => timerGetTotal
-      procedure, public, pass(this)   :: reset => timerReset
-   end type timer_t
-
-
-   integer(int64) :: irate_  = 0_int64
-   integer(int64) :: t_start = 0_int64
+   integer(int64), private :: irate_  = 0_int64
+   integer(int64), private :: t_start = 0_int64
 
 contains
 
 
-   subroutine timingInit()
+   subroutine timing_init()
       call system_clock(count_rate=irate_)
       call system_clock(count=t_start)
    end subroutine
 
 
-   real(real64) function get_seconds(end, ini) result(secs)
+
+   integer(int64) function timing_clock() result(t)
+      call system_clock(count=t)
+   end function
+
+
+
+   real(real64) function timing_getElapsedSeconds(end, ini) result(secs)
       integer(int64), intent(in) :: end, ini
 
       secs = real(end - ini, kind=real64) / real(irate_, kind=real64)
    end function
 
 
-   subroutine timerInit(this)
-      class(timer_t) :: this
-
-      call system_clock(count=this%t_init_)
-      this%t_last_ = this%t_init_
-   end subroutine timerInit
-
-
-
-   real(real64) function timerTime(this) result(dt)
-      class(timer_t) :: this
+   real(real64) function timing_total() result(tot)
       integer(int64) :: t_now
 
       call system_clock(count=t_now)
-      dt = get_seconds(t_now, this%t_last_)
-
-      this%t_last_ = t_now
-   end function timerTime
-
-
-
-
-   real(real64) function timerGetTotal() result(tot)
-      integer(int64) :: t_now
-
-      call system_clock(count=t_now)
-      tot = get_seconds(t_now, t_start)
-   end function timerGetTotal
-
-
-
-
-   subroutine timerReset(this)
-      class(timer_t) :: this
-
-      this%t_init_     = 0._int64
-      this%t_last_     = 0._int64
-   end subroutine timerReset
-
+      tot = timing_getElapsedSeconds(t_now, t_start)
+   end function
 
 
 end module

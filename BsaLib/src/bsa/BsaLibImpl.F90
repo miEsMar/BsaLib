@@ -97,12 +97,7 @@ contains
          if (istat /= 0) call allocKOMsg('struct_data', istat, emsg)
       endif
 
-      if (.not. allocated(timer)) then
-         allocate(timer, stat=istat, errmsg=emsg)
-         if (istat /= 0) call allocKOMsg('timer', istat, emsg)
-      endif
-      call timingInit()
-      call timer%init()
+      call timing_init()
    end subroutine
 
 
