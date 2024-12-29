@@ -1,6 +1,23 @@
 #!/bin/sh
 #
 
+
+# Check if we are in cluster
+case "$HOSTNAME" in
+    glogin*)
+        module purge
+        module load gcc/13.2.0
+        module load cmake
+
+        # For LAPACK
+        module load EB/apps
+        module load LAPACK/3.12.0-GCC-13.2.0
+        ;;
+    *)
+        ;;
+esac
+
+
 # Setup
 builddir="build"
 if [ ! -d ./${builddir} ]; then mkdir ${builddir}; fi
@@ -12,7 +29,7 @@ bld_args=""
 while [ "$1" != "" ]
 do
     case "$1" in
-        -c | --clean)
+        -c | --clean | --rebuild)
             bld_args="${bld_args}--clean-first "
             ;;
         *)
