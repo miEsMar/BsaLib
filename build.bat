@@ -1,10 +1,8 @@
 @echo off
 
 setlocal
-if not exist "build_cmake" mkdir "build_cmake"
-
-set "cleanfirst=--clean-first"
-set "cleanfirst="
+set "builddir=build_cmake"
+if not exist "%builddir%" mkdir "%builddir%"
 
 rem -D CMAKE_BUILD_TYPE=Debug ^
 
@@ -16,12 +14,12 @@ cmake ^
    -D enable-gpu-code=OFF ^
    -D enable-cuda=ON ^
    -D enable-gpu-double=OFF ^
-   -S . -B build_cmake %~1
+   -S . -B %builddir%
 if not "%errorlevel%"=="0" exit /b 1
 
-cmake --build build_cmake --config Debug %cleanfirst%
+cmake --build %builddir% --config Debug %*
 if not "%errorlevel%"=="0" exit /b 1
 
-cmake --build build_cmake --config Release %cleanfirst%
+cmake --build %builddir% --config Release %*
 if not "%errorlevel%"=="0" exit /b 1
 endlocal
