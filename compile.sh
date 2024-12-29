@@ -37,7 +37,6 @@ do
     esac
     shift
 done
-echo ${gen_args}
 
 
 # Generation
