@@ -18,7 +18,6 @@ module data
    use BsaLib
    implicit none (type, external)
    public
-   integer(int32), parameter :: IUN_BSADATA = 22222
    integer(int32), parameter :: IUN_EXTDATA = 22223
    logical :: l_formmode = .false.
    logical :: ext_data_read_ = .false.
@@ -982,8 +981,6 @@ contains ! utility procedures
 
       inquire(unit=IUN_EXTDATA, opened=lflag)
       if (lflag) close(IUN_EXTDATA)
-      inquire(unit=IUN_BSADATA, opened=lflag)
-      if (lflag) close(IUN_BSADATA)
 
       istat = 0
 
