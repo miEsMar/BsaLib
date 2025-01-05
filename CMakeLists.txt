@@ -114,9 +114,6 @@ if (WIN32)
       $<$<COMPILE_LANGUAGE:Fortran>:-warn:all>
       $<$<COMPILE_LANGUAGE:Fortran>:-stand:f18>
    )
-   if ( enable-openmp )
-      add_compile_options( $<$<COMPILE_LANGUAGE:Fortran>:-Qopenmp> )
-   endif()
 else()
    if (intel-compiler)
       add_compile_options(
@@ -131,9 +128,6 @@ else()
          $<$<COMPILE_LANGUAGE:Fortran>:-pedantic>
          $<$<COMPILE_LANGUAGE:Fortran>:-std=f2018>
       )
-   endif()
-   if ( enable-openmp )
-      add_compile_options( $<$<COMPILE_LANGUAGE:Fortran>:-fopenmp> )
    endif()
 endif()
 
@@ -158,6 +152,7 @@ if (intel-compiler)
    if (WIN32)
       add_compile_options( $<$<AND:$<CONFIG:RELEASE>,$<COMPILE_LANGUAGE:Fortran>>:-Ob1> )
       add_compile_options( $<$<COMPILE_LANGUAGE:Fortran>:-Qdiag-disable:8291> ) # field widths recommendation
+      add_compile_options( $<$<AND:$<CONFIG:DEBUG>,$<COMPILE_LANGUAGE:Fortran>>:/traceback> )
    endif()
 else()
    add_compile_options(
