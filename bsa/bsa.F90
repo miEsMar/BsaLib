@@ -310,7 +310,7 @@ contains ! utility procedures
    subroutine printTool()
       print *, '                          BSA  -  main program'
       print *, '   Bispectral Stochastic Analysis of MDOFs systems under stationary actions.'
-      print *
+      print '(/)'
    end subroutine
 
 
