@@ -85,8 +85,6 @@ contains
          if (istat /= 0) call deallocKOMsg('struct_data', istat, emsg)
       endif
 
-      call printTotalTime_()
-
       is_data_cleaned_ = .true.
 
 #ifdef BSA_DEBUG
@@ -135,8 +133,11 @@ contains
 
       if (present(emsg)) print '(/ 1x, 2a/)', ERRMSG, emsg
 
+      call printTotalTime_()
       call cleanBSAData_() ! free memory before halting
+#ifndef BSALIB_SAFE_RETURN
       error stop
+#endif
    end subroutine
 
 end submodule

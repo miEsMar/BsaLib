@@ -66,6 +66,8 @@ program bsa
 
    implicit none (type, external)
 
+   integer(bsa_int_t) :: ierr
+
    ! local, used to retrieve single run BSA results
    real(bsa_real_t), allocatable :: bkg_(:),  res_(:)
    real(bsa_real_t), target, allocatable :: m2mf_(:), m2mr_(:), m2o2mr_(:)   ! NOTE: implicitly classic
@@ -102,9 +104,14 @@ program bsa
 
    call bsa_setTotDamping(r_xsist)
 
+   ierr = 0_bsa_int_t
+
    ! BUG: allow bsa_Run to accept already allocated entities
    !      (check for size match).
-   call bsa_Run(m2mf_, m2mr_, m2o2mr_, m3mf_msh_, m3mr_msh_, m3mf_cls_, m3mr_cls_)
+   call bsa_Run(m2mf_, m2mr_, m2o2mr_, m3mf_msh_, m3mr_msh_, m3mf_cls_, m3mr_cls_, ierr=ierr)
+#ifdef BSALIB_SAFE_RETURN
+   if (0_bsa_int_t /= ierr) goto 99
+#endif
 
    ! POST-PROCESSING
    if (export_results_to_files_ .and. .not.is_visual_) then
@@ -285,7 +292,7 @@ program bsa
    if (allocated(extr_pos_r_full_ng))  deallocate(extr_pos_r_full_ng)
 
 
-   call releaseMemory(0)
+   99 call releaseMemory(ierr)
 
 !=========================================================================================
 !=========================================================================================
@@ -1044,8 +1051,8 @@ contains ! utility procedures
       else
          print '(/ 1x, 2a, i0)', &
             ERRMSG, 'BSA terminated with error. Exit status code  ', iexit
+         error stop
       endif
-      stop
    end subroutine releaseMemory
 
 

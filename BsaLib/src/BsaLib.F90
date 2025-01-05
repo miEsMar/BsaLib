@@ -389,7 +389,8 @@ module BsaLib
 
 
 
-      module subroutine bsa_Run(m2mf_cls, m2mr_cls, m2o2mr_cls, m3mf_msh, m3mr_msh, m3mf_cls, m3mr_cls)
+      module subroutine bsa_Run(&
+            m2mf_cls, m2mr_cls, m2o2mr_cls, m3mf_msh, m3mr_msh, m3mf_cls, m3mr_cls, ierr)
          !# <span style="white-space: pre-line">
          ! <b>Main</b> `BsaLib` procedure. 
          ! This should be the <b>last</b> API call to make, after all settings has been done.
@@ -414,6 +415,7 @@ module BsaLib
             !! \(3^{\mathrm{rd}}\) order moments, modal forces, \(\mathtt{Classic}\) approach
          real(bsa_real_t), target, allocatable, dimension(:) :: m3mr_cls
             !! \(3^{\mathrm{rd}}\) order moments, modal responses, \(\mathtt{Classic}\) approach
+         integer(bsa_int_t), intent(out), optional :: ierr
       end subroutine
 
 

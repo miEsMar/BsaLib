@@ -167,10 +167,15 @@ contains
 
 
 
-   module subroutine bsa_Run(m2mf_cls, m2mr_cls, m2o2mr_cls, m3mf_msh, m3mr_msh, m3mf_cls, m3mr_cls)
+   module subroutine bsa_Run(&
+         m2mf_cls, m2mr_cls, m2o2mr_cls, m3mf_msh, m3mr_msh, m3mf_cls, m3mr_cls, ierr)
       use BsaLib_Functions
       real(bsa_real_t), target, allocatable, dimension(:) :: &
          m2mf_cls, m2mr_cls, m2o2mr_cls, m3mf_msh, m3mr_msh, m3mf_cls, m3mr_cls
+      integer(bsa_int_t), intent(out), optional :: ierr
+#ifdef BSALIB_SAFE_RETURN
+      integer(bsa_int_t) :: ierr_
+#endif
 
       ! Generate BSA compatible files
       if (do_gen_bsa_input_files_) then
@@ -195,12 +200,26 @@ contains
             print '(1x, 3a)', &
                ERRMSG, BSA_DATA_FNAME, ' does not exist in current working directory.'
             call bsa_Abort()
+#ifdef BSALIB_SAFE_RETURN
+            ierr_ = 1
+            goto 99
+#endif
          end if
       end if
 
 
+      ! Validate input data before going on.
+      ierr_ = validateAll_()
+      if (0_bsa_int_t /= ierr_) then
+#ifdef BSALIB_SAFE_RETURN
+         goto 99
+#endif
+      endif
+
+
       if (.not. header_called_) call bsa_printBSAHeader()
       call io_setExportSpecifiers()
+
 
       block
          character(len = :), allocatable :: fname_cls_, fname_msh_
@@ -229,9 +248,17 @@ contains
 
                   if (visual_indexes_(1) > struct_data%nn_) then
                      call bsa_Abort("Node index exceeds max n. of nodes")
+#ifdef BSALIB_SAFE_RETURN
+                     ierr_ = 2
+                     goto 99
+#endif
                   endif
                   if (visual_indexes_(2) > struct_data%nlibs_) then
                      call bsa_Abort("DOF index exceeds max n. of DOFs per node")
+#ifdef BSALIB_SAFE_RETURN
+                     ierr_ = 3
+                     goto 99
+#endif
                   endif
                   visual_idx_ = (visual_indexes_(1) - 1)*struct_data%nlibs_ + visual_indexes_(2)
 
@@ -271,14 +298,12 @@ contains
 
 
 
-
 #if (defined(_OPENMP)) && (defined(BSA_DEBUG))
          print '(1x, 2a)', NOTEMSG, 'This version has been compiled with OpenMP support.'
 #endif
          print *
 
 
-         call validateAll_()              ! check before doing some bad things..
          call setBsaFunctionLocalVars()   ! NOTE: reset internal state, if something has been changed
          call io_printUserData()
 
@@ -474,9 +499,14 @@ contains
             print '(1x, 2a)', INFOMSG, "BSACL returned correctly."
          else
             call bsa_Abort("BSACL returned with error.")
+# ifdef BSALIB_SAFE_RETURN
+            ierr_ = ierr_cl_
+            goto 99
+# endif
          endif
       endif
 #endif
+      99 if (present(ierr)) ierr = ierr_
    end subroutine bsa_Run
 
 
@@ -484,7 +514,8 @@ contains
 
 
 
-   subroutine validateAll_()
+   function validateAll_() result(ierr)
+      integer(bsa_int_t) :: ierr
 
       call setExportPathPrefix_()
 
@@ -525,8 +556,16 @@ contains
 
 
       if (struct_data%ndofs_ == 0) struct_data%ndofs_ = struct_data%nn_ * struct_data%nlibs_
-      if (struct_data%ndofs_ /= size(struct_data%modal_%phi_, 1)) call bsa_Abort("NDOFs does not match modal matrix size.")
-      if (do_validate_modal_) call validateModalInfo_()
+      if (struct_data%ndofs_ /= size(struct_data%modal_%phi_, 1)) then
+         call bsa_Abort("NDOFs does not match modal matrix size.")
+#ifdef BSALIB_SAFE_RETURN
+         ierr = 1
+         return
+#endif
+      endif
+
+      ierr = validateModalInfo_()
+      if (0_bsa_int_t /= ierr) return
 
       if (.not. allocated(struct_data%bkg_peak_width_)) then
          block
@@ -550,7 +589,7 @@ contains
          call wd%SetTurbCompsAndDirsDefault()
 
       if (.not. associated(wd%phi_times_A_ndegw_)) call setPhitimesCLocalInstance_()
-   end subroutine validateAll_
+   end function validateAll_
 
 
 
@@ -560,13 +599,23 @@ contains
    !> (i.e. modes in torsion, etc..)
    !> NOTE: here is where NMODES_EFF is actually set.
    !>       Better not to give user the chance to do it.
-   subroutine validateModalInfo_()
+   function validateModalInfo_() result(ierr)
       real(bsa_real_t), dimension(struct_data%modal_%nm_) :: maxvals
       integer(int32) :: j, nskip, ilocmax(1), ilib
       integer(int32) :: nmk, istat
       integer(bsa_int_t) :: i
       integer(bsa_int_t), allocatable :: modesk(:)
       character(len = 256) :: emsg
+      integer(bsa_int_t)   :: ierr
+
+      ierr = 0
+      if (struct_data%modal_%nm_ == 0) then
+         print '(/ 1x, 2a )', ERRMSG, ") num. of modes detected."
+         ierr = 1
+         return
+      endif
+
+      if (.not. do_validate_modal_) return
 
       maxvals = maxval(abs(struct_data%modal_%phi_), dim=1)
       nskip   = 0
@@ -614,7 +663,7 @@ contains
       struct_data%modal_%nm_eff_ = nmk
       struct_data%modal_%modes_  = modesk
       deallocate(modesk, stat=istat)
-   end subroutine validateModalInfo_
+   end function validateModalInfo_
 
 
 
