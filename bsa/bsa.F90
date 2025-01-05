@@ -247,7 +247,7 @@ program bsa
             endif
 
          endif ! allocated m2mr
-         deallocate(modes_)
+         if (allocated(modes_)) deallocate(modes_)
 
          if (allocated(m3mf_cls_)) then
             fname = exp_prfx // 'm3_mf_' // cls_sffx // udscr // cmb_sffx // exp_fext
@@ -269,14 +269,10 @@ program bsa
    endif
 
    if (allocated(m2mf_))      deallocate(m2mf_)
-   if (allocated(m3mf_cls_))  deallocate(m3mf_cls_)
-   if (allocated(m3mf_msh_))  deallocate(m3mf_msh_)
    if (allocated(m2mr_))      deallocate(m2mr_)
-   if (allocated(m3mr_cls_))  deallocate(m3mr_cls_)
-   if (allocated(m3mr_msh_))  deallocate(m3mr_msh_)
    if (allocated(m3mf_cls_))  deallocate(m3mf_cls_)
-   if (allocated(m3mr_cls_))  deallocate(m3mr_cls_)
    if (allocated(m3mf_msh_))  deallocate(m3mf_msh_)
+   if (allocated(m3mr_cls_))  deallocate(m3mr_cls_)
    if (allocated(m3mr_msh_))  deallocate(m3mr_msh_)
 
    if (allocated(peak_pos_r_diag_g))   deallocate(peak_pos_r_diag_g)
