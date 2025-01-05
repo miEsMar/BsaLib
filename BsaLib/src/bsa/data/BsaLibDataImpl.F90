@@ -44,9 +44,6 @@ contains
       integer(int32) :: istat
       character(len = 256) :: emsg
 
-      if (allocated(wd))          call wd%clean()
-      if (allocated(struct_data)) call struct_data%clean()
-
       if (associated(m3mf_msh_ptr_)) nullify(m3mf_msh_ptr_)
       if (associated(m3mr_msh_ptr_)) nullify(m3mr_msh_ptr_)
 
@@ -77,11 +74,13 @@ contains
       endif
 
       if (allocated(wd)) then
+         call wd%clean()
          deallocate(wd, stat=istat, errmsg=emsg)
          if (istat /= 0) call deallocKOMsg('wd', istat, emsg)
       endif
 
       if (allocated(struct_data)) then
+         call struct_data%clean()
          deallocate(struct_data, stat=istat, errmsg=emsg)
          if (istat /= 0) call deallocKOMsg('struct_data', istat, emsg)
       endif

@@ -183,7 +183,7 @@ contains
 
       if (this%modal_%nm_ == 0) then
          print '(/ 1x, 2a, a /)', &
-            ' ' // ERRMSG // 'NM == 0 when setting Damping info.'
+            ERRMSG // 'NM == 0 when setting Damping info.'
          call bsa_Abort()
       endif
 
