@@ -115,7 +115,7 @@ contains
          inquire(unit = io_units_bfmdump(i), opened = isopn)
          if (isopn) close(io_units_bfmdump(i))
       enddo
-      deallocate(io_units_bfmdump)
+      if (allocated(io_units_bfmdump)) deallocate(io_units_bfmdump)
 
       inquire(unit = un_export_bisp_cls_, opened = isopn)
       if (isopn) close(un_export_bisp_cls_)
