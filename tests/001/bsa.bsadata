@@ -1,0 +1,28 @@
+-GENERAL:
+   2
+   2
+   1
+   1
+   0
+   0
+   0
+   0
+   1
+-CLASSIC:
+   0
+ 200
+   0.0050
+-MESHER:
+   1
+  50
+   2.
+   2.
+   2.
+   1
+   1
+-DIRECTIONS:
+   1
+   1
+-TURBULENCE:
+   1
+   1

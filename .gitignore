@@ -63,7 +63,6 @@ build*/
 images/
 My *
 compile_flags.txt
-tests/
 readme_files/
 resources/
 scripts/
