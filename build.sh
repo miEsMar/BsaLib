@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 
-. env
+. ./env
 
 cmake --build build $*
 
