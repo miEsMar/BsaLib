@@ -44,14 +44,13 @@ cmake_minimum_required( VERSION 3.15 )
 # Main project name
 ###########################################################
 file(STRINGS "${CMAKE_SOURCE_DIR}/VERSION" PROJECT_VERSION)
-set( project BsaLib )
-project( ${project} 
+project( BsaFramework
    LANGUAGES Fortran 
    VERSION ${PROJECT_VERSION} 
    DESCRIPTION "Library for Bispectral analysis of systems under non-Gaussian wind action"
 )
-include(CheckFortranSourceCompiles)
-include(CheckFortranSourceRuns)
+# include(CheckFortranSourceCompiles)
+# include(CheckFortranSourceRuns)
 
 
 ###########################################################

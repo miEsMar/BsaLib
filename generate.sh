@@ -7,10 +7,10 @@
 builddir="build"
 if [ ! -d ./${builddir} ]; then mkdir ${builddir}; fi
 
-
 cmake \
     $* \
-    -D CMAKE_Fortran_COMPILER=gfortran \
+    ${lapack_libs} \
+    -D CMAKE_Fortran_COMPILER=gfortran-12 \
     -D BUILD_SHARED_LIBS=OFF \
     -D enable-openmp=ON \
     -D enable-sym-ev-routine=OFF \

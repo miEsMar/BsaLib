@@ -59,16 +59,15 @@ set(SRC
 )
 
 
-
 # TODO: at some point, enable shared library generation
-add_library( ${project} STATIC ${SRC} )
-set_target_properties( ${project} PROPERTIES
+add_library( BsaLib STATIC ${SRC} )
+set_target_properties( BsaLib PROPERTIES
    DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX}
 )
 
 
 if ( enable-pod-caching )
-   target_compile_definitions( ${project} PRIVATE BSA_USE_POD_DATA_CACHING )
+   target_compile_definitions( BsaLib PRIVATE BSA_USE_POD_DATA_CACHING )
 endif()
 
 
@@ -77,7 +76,7 @@ endif()
 #      file I/O. For better performances, consider rethinking about the
 #      logic related, otherwise better use 1 thread only.
 if ( enable-post-mesh-omp )
-   target_compile_definitions( ${project} PRIVATE BSA_USE_POST_MESH_OMP )
+   target_compile_definitions( BsaLib PRIVATE BSA_USE_POST_MESH_OMP )
 endif()
 
 
@@ -93,7 +92,7 @@ endif()
 # Ignored if compiler does not target MSVC!
 # Taken from https://cmake.org/cmake/help/latest/prop_tgt/MSVC_RUNTIME_LIBRARY.html
 # NOTE: if using shared, append DLL!
-set_property(TARGET ${project} PROPERTY
+set_property(TARGET BsaLib PROPERTY
    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 
@@ -103,24 +102,10 @@ set( CMAKE_Fortran_FLAGS_RELEASE-default ${CMAKE_Fortran_FLAGS_RELEASE} PARENT_S
 set( CMAKE_Fortran_FLAGS_RELEASE "" )
 
 
-if (intel-compiler AND enable-mkl)
-   message( STATUS "NOTE: Using Intel MKL libraries." )
-   if (WIN32)
-      target_compile_options( ${project} INTERFACE "-Qmkl:parallel" )
-   else()
-      target_compile_options( ${project} INTERFACE "-qmkl=parallel" )
-   endif()
-   set( enable-openmp ON )
-else()
-   find_package( LAPACK REQUIRED )
-   if (NOT LAPACK_FOUND )
-      message( SEND_ERROR "Could not find LAPACK." )
-   endif()
-   target_link_libraries( ${project} INTERFACE ${LAPACK_LIBRARIES} )
-endif()
-
-
-if ( enable-openmp )
+# ******************************************************
+# OpenMP
+# ******************************************************
+if (enable-openmp)
    # NOTE: find_package for OpenMP used to not work on Windows.
    #       See https://discourse.cmake.org/t/unique-way-to-enable-openmp-with-cmake/10350
    #       However, it now seems to be fixed using version 3.31.3.
@@ -130,21 +115,20 @@ if ( enable-openmp )
    # # Uncomment this if find_package() fails on Windows.
    # if (WIN32)
    #    if (intel-compiler)
-   #       target_compile_options( ${project} PRIVATE "-Qopenmp" )
+   #       target_compile_options( BsaLib PRIVATE "-Qopenmp" )
    #    else()
-   #       target_compile_options( ${project} PRIVATE "-fopenmp" )
+   #       target_compile_options( BsaLib PRIVATE "-fopenmp" )
    #    endif()
    # else()
       find_package( OpenMP REQUIRED COMPONENTS Fortran )
-      target_link_libraries( ${project} PUBLIC OpenMP::OpenMP_Fortran )
+      target_link_libraries( BsaLib PUBLIC OpenMP::OpenMP_Fortran )
    # endif()
 else()
    if ( intel-compiler )
-      target_compile_options( ${project} PRIVATE $<IF:${WIN32},-assume:nocc_omp,> )
-      target_compile_options( ${project} PRIVATE $<IF:${WIN32},-Qparallel,-parallel> )
+      target_compile_options( BsaLib PRIVATE $<IF:${WIN32},-assume:nocc_omp,> )
+      target_compile_options( BsaLib PRIVATE $<IF:${WIN32},-Qparallel,-parallel> )
    endif()
 endif()
-
 
 
 if ( enable-shared-runtime )
@@ -152,12 +136,12 @@ if ( enable-shared-runtime )
 else()
    if (intel-compiler)
       if (WIN32)
-         target_compile_options( ${project} PUBLIC "-libs:static" )
+         target_compile_options( BsaLib PUBLIC "-libs:static" )
       else()
-         target_compile_options( ${project} PUBLIC "-static" )
-         target_compile_options( ${project} PUBLIC "-static-intel" )
+         target_compile_options( BsaLib PUBLIC "-static" )
+         target_compile_options( BsaLib PUBLIC "-static-intel" )
          if (enable-openmp)
-            target_compile_options( ${project} PUBLIC "-qopenmp-link=static" )
+            target_compile_options( BsaLib PUBLIC "-qopenmp-link=static" )
          endif()
       endif()
    else()
@@ -166,17 +150,35 @@ else()
 endif()
 
 
+# ******************************************************
+# LAPACK and BLAS
+# ******************************************************
+if (intel-compiler AND enable-mkl)
+   message( STATUS "NOTE: Using Intel MKL libraries." )
+   set(BLA_VENDOR Intel10_64lp)
+
+   # NOTE: this might be removed, and only use find_package()
+   if (WIN32)
+      target_compile_options( BsaLib INTERFACE "-Qmkl:parallel" )
+   else()
+      target_compile_options( BsaLib INTERFACE "-qmkl=parallel" )
+   endif()
+endif()
+find_package( LAPACK REQUIRED )
+target_link_libraries( BsaLib PRIVATE ${LAPACK_LIBRARIES} )
+
 if (enable-sym-ev-routine)
    message( STATUS "NOTE: Using 'dsyev'  method" )
 else()
    message( STATUS "NOTE: Using 'dgesvd' method" )
-   target_compile_definitions( ${project} PRIVATE "-DBSA_USE_SVD_METHOD" )
+   target_compile_definitions( BsaLib PRIVATE "-DBSA_USE_SVD_METHOD" )
 endif()
 
 
-
+# ******************************************************
+# GPU
+# ******************************************************
 if ( enable-gpu-code )
-
    if (enable-cuda)
       enable_language( CUDA )
       if (enable-ocl-ptx-code-gen)
@@ -185,11 +187,11 @@ if ( enable-gpu-code )
    endif()
    add_subdirectory( BsaCL )
 
-   target_compile_definitions( ${project} PRIVATE BSA_USE_GPU )
+   target_compile_definitions( BsaLib PRIVATE BSA_USE_GPU )
    if (enable-cuda)
-      target_compile_definitions( ${project} PRIVATE BSA_USE_CUDA )
+      target_compile_definitions( BsaLib PRIVATE BSA_USE_CUDA )
    endif()
-   target_link_libraries( ${project} PRIVATE BsaCL_Fortran )
+   target_link_libraries( BsaLib PRIVATE BsaCL_Fortran )
 endif()
 
 
@@ -198,9 +200,9 @@ set(LIB_MOD_DIR ${CMAKE_CURRENT_BINARY_DIR}/modules)
 if(NOT EXISTS "${LIB_MOD_DIR}")
   make_directory("${LIB_MOD_DIR}")
 endif()
-set_target_properties( ${project} PROPERTIES Fortran_MODULE_DIRECTORY ${LIB_MOD_DIR} )
+set_target_properties( BsaLib PROPERTIES Fortran_MODULE_DIRECTORY ${LIB_MOD_DIR} )
 
-target_include_directories( ${project}
+target_include_directories(BsaLib
    PUBLIC
    $<BUILD_INTERFACE:${LIB_MOD_DIR}>
    $<INSTALL_INTERFACE:${CMAKE_INSTALL_MODULEDIR}>

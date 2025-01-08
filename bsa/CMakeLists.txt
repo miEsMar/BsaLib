@@ -28,27 +28,23 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.enable_language( Fortran )
 
 add_executable( bsa bsa.F90 )
+target_link_libraries( bsa PRIVATE BsaLib )
 
+set( target_name "bsa" )
 if (enable-openmp)
-   message( STATUS "NOTE: setting bsa target name to 'bsa_omp'")
-   set_target_properties( bsa PROPERTIES OUTPUT_NAME "bsa_omp" )
+   set( target_name "${target_name}_omp" )
 endif()
-
-target_link_libraries( bsa BsaLib )
 
 if (intel-compiler AND WIN32)
    target_compile_options( bsa PRIVATE -w )
-endif()
-
-
-if (GNU)
+elseif (GNU)
    target_compile_options( bsa <$<CONFIG:DEBUG>:-fbacktrace> )
 endif()
 
 
 if (enable-gpu-code)
    if (enable-cuda)
-      set_target_properties(bsa PROPERTIES OUTPUT_NAME "bsa_cuda")
+      set( target_name "${target_name}_cuda" )
       set_property(TARGET bsa PROPERTY CUDA_SEPARABLE_COMPILATION ON)
       if(APPLE)
          # We need to add the path to the driver (libcuda.dylib) as an rpath,
@@ -58,10 +54,11 @@ if (enable-gpu-code)
             BUILD_RPATH ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
       endif()
    else()
-      set_target_properties(bsa PROPERTIES OUTPUT_NAME "bsa_cl")
+      set( target_name "${target_name}_cl" )
    endif()
 endif()
 
+set_target_properties( bsa PROPERTIES OUTPUT_NAME "${target_name}" )
 
 set( LIB_MOD_DIR ${CMAKE_CURRENT_BINARY_DIR}/modules )
 if(NOT EXISTS "${LIB_MOD_DIR}")
@@ -71,7 +68,7 @@ set_target_properties( bsa
    PROPERTIES Fortran_MODULE_DIRECTORY ${LIB_MOD_DIR}
 )
 
-target_include_directories( ${project} 
+target_include_directories( bsa
    PUBLIC
    $<BUILD_INTERFACE:${LIB_MOD_DIR}>
    $<INSTALL_INTERFACE:${CMAKE_INSTALL_MODULEDIR}>
