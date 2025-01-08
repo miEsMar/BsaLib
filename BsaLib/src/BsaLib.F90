@@ -59,6 +59,21 @@ module BsaLib
       end subroutine
 
 
+      module subroutine bsa_setErrorHandlingMode(mode)
+         !# <span style="white-space: pre-line">
+         ! Sets BsaLib error handling mode.
+         ! Valid values:
+         ! <ul>
+         !    <li>  <code>BSA_AT_ERROR_ABORT</code>:  if an error is detected, halts execution.
+         !    <li>  <code>BSA_AT_ERROR_RETURN</code>: if an error is detected,
+         !             execution is returned at the call site of <code>[[bsalib(module):bsa_run(interface)]]</code>.
+         ! </ul>
+         ! </span>
+
+         integer(bsa_int_t), intent(in) :: mode
+      end subroutine
+
+
       module subroutine bsa_readInputParamsFromBSAFile()
          !# <span style="white-space: pre-line">
          ! Enables deferred reading of formatted file <code>bsa.bsadata</code> 

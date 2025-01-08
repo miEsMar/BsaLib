@@ -63,7 +63,6 @@ option(enable-shared-runtime   "Link to shared Fortran runtime libraries"       
 option(enable-openmp           "Enable OpenMP parallelisation"                      ON)
 option(enable-mkl              "Enable Intel MKL libraries (Intel compilers only)"  ON)
 option(enable-sym-ev-routine   "Enable usage of 'dsyev' instead of 'dgesvd'"        ON)
-option(enable-safe-return      "Enable a safe return with error code instead of stopping execution" ON)
 
 # experimental
 option(enable-pod-caching     "Enable POD caching. EXPERIMENTAL!"                   OFF)
@@ -130,11 +129,6 @@ else()
       )
    endif()
 endif()
-
-
-if (enable-safe-return)
-   add_compile_options(-DBSALIB_SAFE_RETURN)
-endif ()
 
 
 # Configuration specific options

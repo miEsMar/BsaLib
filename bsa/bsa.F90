@@ -109,9 +109,7 @@ program bsa
    ! BUG: allow bsa_Run to accept already allocated entities
    !      (check for size match).
    call bsa_Run(m2mf_, m2mr_, m2o2mr_, m3mf_msh_, m3mr_msh_, m3mf_cls_, m3mr_cls_, ierr=ierr)
-#ifdef BSALIB_SAFE_RETURN
    if (0_bsa_int_t /= ierr) goto 99
-#endif
 
    ! POST-PROCESSING
    if (export_results_to_files_ .and. .not.is_visual_) then

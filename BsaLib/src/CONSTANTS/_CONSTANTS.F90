@@ -57,6 +57,10 @@
    integer(IK), parameter :: BSA_PSD_CONVENTION_FREQ = 0_IK
    integer(IK), parameter :: BSA_PSD_CONVENTION_PULS = 1_IK
 
+   integer(IK), parameter :: BSA_AT_ERROR_ABORT  = 0_IK
+   integer(IK), parameter :: BSA_AT_ERROR_RETURN = 1_IK
+
+
 !**************************************************************************************
 !   BSA  I/O  DEFAULTS
 !**************************************************************************************

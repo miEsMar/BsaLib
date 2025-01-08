@@ -87,6 +87,8 @@ contains
 
       is_data_cleaned_ = .true.
 
+      call printTotalTime_()
+
 #ifdef BSA_DEBUG
       write(unit_debug_, *) INFOMSG//'Data cleaned -- ok.'
 #endif
@@ -133,11 +135,10 @@ contains
 
       if (present(emsg)) print '(/ 1x, 2a/)', ERRMSG, emsg
 
-      call printTotalTime_()
       call cleanBSAData_() ! free memory before halting
-#ifndef BSALIB_SAFE_RETURN
-      error stop
-#endif
+      if (BSA_AT_ERROR_ABORT == error_hand_mode_) then
+         error stop
+      endif
    end subroutine
 
 end submodule

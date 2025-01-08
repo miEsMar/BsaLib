@@ -173,9 +173,7 @@ contains
       real(bsa_real_t), target, allocatable, dimension(:) :: &
          m2mf_cls, m2mr_cls, m2o2mr_cls, m3mf_msh, m3mr_msh, m3mf_cls, m3mr_cls
       integer(bsa_int_t), intent(out), optional :: ierr
-#ifdef BSALIB_SAFE_RETURN
       integer(bsa_int_t) :: ierr_
-#endif
 
       ! Generate BSA compatible files
       if (do_gen_bsa_input_files_) then
@@ -200,21 +198,15 @@ contains
             print '(1x, 3a)', &
                ERRMSG, BSA_DATA_FNAME, ' does not exist in current working directory.'
             call bsa_Abort()
-#ifdef BSALIB_SAFE_RETURN
             ierr_ = 1
             goto 99
-#endif
          end if
       end if
 
 
       ! Validate input data before going on.
       ierr_ = validateAll_()
-      if (0_bsa_int_t /= ierr_) then
-#ifdef BSALIB_SAFE_RETURN
-         goto 99
-#endif
-      endif
+      if (0_bsa_int_t /= ierr_) goto 99
 
 
       if (.not. header_called_) call bsa_printBSAHeader()
@@ -248,17 +240,13 @@ contains
 
                   if (visual_indexes_(1) > struct_data%nn_) then
                      call bsa_Abort("Node index exceeds max n. of nodes")
-#ifdef BSALIB_SAFE_RETURN
                      ierr_ = 2
                      goto 99
-#endif
                   endif
                   if (visual_indexes_(2) > struct_data%nlibs_) then
                      call bsa_Abort("DOF index exceeds max n. of DOFs per node")
-#ifdef BSALIB_SAFE_RETURN
                      ierr_ = 3
                      goto 99
-#endif
                   endif
                   visual_idx_ = (visual_indexes_(1) - 1)*struct_data%nlibs_ + visual_indexes_(2)
 
@@ -499,10 +487,8 @@ contains
             print '(1x, 2a)', INFOMSG, "BSACL returned correctly."
          else
             call bsa_Abort("BSACL returned with error.")
-# ifdef BSALIB_SAFE_RETURN
             ierr_ = ierr_cl_
             goto 99
-# endif
          endif
       endif
 #endif
@@ -558,10 +544,8 @@ contains
       if (struct_data%ndofs_ == 0) struct_data%ndofs_ = struct_data%nn_ * struct_data%nlibs_
       if (struct_data%ndofs_ /= size(struct_data%modal_%phi_, 1)) then
          call bsa_Abort("NDOFs does not match modal matrix size.")
-#ifdef BSALIB_SAFE_RETURN
          ierr = 1
          return
-#endif
       endif
 
       ierr = validateModalInfo_()

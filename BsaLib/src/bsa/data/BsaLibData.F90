@@ -85,6 +85,9 @@ module BsaLib_Data
    !> Keeps track of max n. of OMP threads. 1 (main) thread by default.
    integer(bsa_int_t) :: max_num_omp_threads_ = 1_bsa_int_t
 
+   !> BSA Error handling mode.
+   integer(bsa_int_t) :: error_hand_mode_ = BSA_AT_ERROR_ABORT
+
 
 ! **********************************************************************
 !   Exporting control data
