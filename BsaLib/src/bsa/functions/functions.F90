@@ -35,16 +35,11 @@ module BsaLib_Functions
 
    interface
 
-      module subroutine setBsaFunctionLocalVars()
-      end subroutine
-
-
       module subroutine prefetchSVDWorkDim_()
       end subroutine
 
       module subroutine cleanSVDWorkInfo_()
       end subroutine
-
 
 
       module subroutine getFM_full_tnm_scalar_msh_(bfm, fi, fj)
@@ -169,5 +164,33 @@ module BsaLib_Functions
       end subroutine
 
    end interface
+
+
+contains
+
+
+   module subroutine setBsaFunctionLocalVars()
+
+      NFREQS  = settings%nfreqs_
+
+      ! nodal
+      NNODES  = struct_data%nn_
+      NNODESL = struct_data%nn_load_
+      NLIBS   = struct_data%nlibs_    ! tot n. of LIBs per node
+      NLIBSL  = struct_data%nlibs_load_    ! actual n. of loaded LIBs
+
+      ! modal
+      NMODES     = struct_data%modal_%nm_
+      NMODES_EFF = struct_data%modal_%nm_eff_
+      MODES      = struct_data%modal_%modes_
+
+      ! wind
+      NTCOMPS = wd%i_ntc_
+      TCOMPS  = wd%tc_
+      NDIRS   = wd%i_ndirs_
+      DIRS    = wd%dirs_
+      NPSDEL  = NNODESL * NTCOMPS * NDIRS
+   end subroutine
+
 
 end module BsaLib_Functions

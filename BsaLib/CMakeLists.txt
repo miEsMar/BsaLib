@@ -37,8 +37,9 @@ set(SRC
    ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/data/BsaLibData.F90
    ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/data/BsaLibDataImpl.F90
    ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/functions/functions.F90
-   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/functions/functionsImpl.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/classic/functions.F90
    ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/meshing/BsaMesherImpl.F90
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/meshing/functions.F90
    ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/meshing/point/MPoint.F90
    ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/meshing/policy/MPolicy.F90
    ${CMAKE_CURRENT_SOURCE_DIR}/src/bsa/meshing/zones/M2DPolygZone.F90
