@@ -12,7 +12,6 @@ case "$HOSTNAME" in
         module load LAPACK/3.12.0-GCC-13.2.0
         ;;
     *)
-        # lapack_libs="-D LOCAL_BLAS_LIBRARIES=\"${HOME}/repos/lapack/install/lib/libblas64.a\" -D LOCAL_LAPACK_LIBRARIES=\"${HOME}/repos/lapack/install/lib/liblapack64.a\""
         lapack_libs="-D LAPACK_ROOT=${HOME}/repos/lapack/install"
         ;;
 esac
