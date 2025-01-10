@@ -20,6 +20,7 @@ module BsaLib_MPolicy
    private
    public :: MPolicy_create_default_set
 
+
    integer(int32), public, parameter :: MPolicy_NULL  = 0
    integer(int32), public, parameter :: MPolicy_DEF   = 1
    integer(int32), public, parameter :: MPolicy_CONST = 2
