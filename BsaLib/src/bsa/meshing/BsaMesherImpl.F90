@@ -32,6 +32,19 @@ submodule(BsaLib) BsaLib_MesherImpl
    ! BUG: let the user choose how many modes it allows to be covered max.
    integer(int32), parameter :: N_RES_PEAK_IN_BKG_ZONE_DIV_FCT_ = 4
 
+
+#define BSA_TEST_ZONES_ARRAY
+
+#if (defined(BSA_TEST_ZONES_ARRAY))
+   !> Save rect zones info at premesh phase
+   !> BUG: works with rect zones only. Allow polymorphism!
+   type(MRectZone_t), allocatable, target :: meshing_zones__(:)
+
+   !> Keeps track of the current base offset of the zones array
+   integer(bsa_int_t) :: zones_offset__ = 0_bsa_int_t
+#endif
+
+
    interface getEquivalentLooperIterator
       module procedure getEquivalentLooperIterator_char
       module procedure getEquivalentLooperIterator_real
@@ -81,6 +94,11 @@ contains
       if ((lflag .and. test_no_bfm_mlr_) .or. is_only_premesh_) call cleanSVDWorkInfo_()
 #endif
 
+
+#if (defined(BSA_TEST_ZONES_ARRAY))
+      call dump_zones_(meshing_zones__)
+      goto 998
+#endif
 
       if (is_only_premesh_) then
          print '(1x, 2a)', &
@@ -138,6 +156,11 @@ contains
          print '(1x, 2a, i0)', MSGCONT, ' POST-MESH  (BFM) : ', msh_bfmpts_post_
          print '(1x, 2a, i0)', MSGCONT, ' POST-MESH  (BRM) : ', msh_brmpts_post_
       ! endif
+
+
+#if (defined(BSA_TEST_ZONES_ARRAY))
+      if (allocated(meshing_zones__)) deallocate(meshing_zones__)
+#endif
 
 
 #ifdef BSA_DEBUG
@@ -246,6 +269,42 @@ contains
    end subroutine
 
 
+#if (defined(BSA_TEST_ZONES_ARRAY))
+   integer(bsa_int_t) function computeTotNOfZones_(nlims) result(nzones)
+      integer(bsa_int_t), value :: nlims
+
+      nzones = 0_bsa_int_t
+      if (ipre_mesh_type == BSA_PREMESH_TYPE_DIAG_CREST_NO) then
+         if (nlims == 0) then
+            nzones = 1
+            return
+         endif
+         nlims  = nlims + 1   ! NOTE: here nlims is still missing that little over-extension
+         nzones = 2 * (nlims * 4)
+         nzones = nzones + 4 * (nlims-1) * 2
+         nzones = nzones + 4 + 1
+      endif
+   end function
+
+   subroutine dump_zones_(zones)
+      class(MRectZone_t), intent(in) :: zones(:)
+      integer(bsa_int_t) :: i, nzones
+
+      nzones = size(zones)
+      write(34342, *) nzones
+      do i = 1, nzones
+         write(34342, '(a, i0)') "Zone n.  ", i
+         write(34342, *) zones(i)%Ipt_
+         write(34342, *) zones(i)%Ept_
+         write(34342, *) zones(i)%deltaf_I_
+         write(34342, *) zones(i)%deltaf_J_
+         write(34342, *) zones(i)%ni_
+         write(34342, *) zones(i)%nj_
+      enddo
+   end subroutine
+
+#endif
+
 
    !> Computes Pre-meshing phase for BFM,
    !> to be stored (dumped) for bRM meshing actual computation
@@ -311,7 +370,6 @@ contains
       type(MPolicy_t), allocatable, target :: policies(:)
 
       type(MRectZone_t) :: bkgz
-      character(len = :), allocatable :: zone_title
 
       integer(int64) :: ti, te
 
@@ -358,14 +416,24 @@ contains
 #endif
 
 
+      ! Pre-compute no. of zones, so that we can allocate rect zones
+#if (defined(BSA_TEST_ZONES_ARRAY))
+      msh_NZones = computeTotNOfZones_(NLims)
+      if (msh_NZones > 0_bsa_int_t) then
+         allocate(meshing_zones__(msh_NZones), stat=iost)
+         if (iost /= 0_bsa_int_t) call bsa_Abort("Failed to allocate meshing_zones__")
+      endif
+#endif
+
+
       !===================================================================================
       ! BKG peak
       !
       ! NOTE: we keep it in memory, since it will serve as reference
       !       point for other nearby zones correct identification.
-      ti = timing_clock()
-      zone_title = 'BKG center peak'
-      bkgz       = MRectZone(0._bsa_real_t, zone_title)
+      ti   = timing_clock()
+      bkgz = MRectZone(0._bsa_real_t)
+      ! bkgz%setRotation(0._bsa_real_t)
       if (settings%i_bisp_sym_ == BSA_SPATIAL_SYM_HALF) then
          base_i = base_i / 2._bsa_real_t
          call bkgz%define(MPoint(0._bsa_real_t, - base_i), 'i', base_i, base_j)
@@ -441,6 +509,11 @@ contains
       call bkgz%compute()
 #ifndef BSA_USE_POD_DATA_CACHING
       te = timing_clock()
+#endif
+
+#if (defined(BSA_TEST_ZONES_ARRAY))
+      meshing_zones__(1) = bkgz
+      zones_offset__ = 1
 #endif
 
       if (.not. allocated(limits)) goto 998  ! NOTE: BKG zone covers them all, bad..
@@ -563,21 +636,21 @@ contains
          endif
 
 
-         !$ if (allocated(zone_title)) deallocate(zone_title)
-
-
          !$omp parallel do &
          !$omp   default(firstprivate),        &
-         !$omp   private(idir, zone_title),    &
+         !$omp   private(idir),  &
          !$omp   shared(NLimsP1  &
 #ifndef __GFORTRAN__
          !$omp          , DIRS_LABELS, ROTATIONS, COORDS_DIR_CH, LIM_SIGN_DIRS  &
 #endif
          !$omp          , policies, limits, df_I_ref, df_J_ref, msh_ZoneLimsInterestModes &
          !$omp          , refmts, deltas, inter_modes_, basePts, base_i, bases_i_ &
-         !$omp          , struct_data, wd, settings &
-         !$omp          , id_im_last, maxF, NLims, getBFM_msh, pol &
-         !$omp          , NFREQS, NNODES, NNODESL, NLIBS, NLIBSL &
+         !$omp          , struct_data, wd, settings                  &
+         !$omp          , id_im_last, maxF, NLims, getBFM_msh, pol   &
+#if (defined(BSA_TEST_ZONES_ARRAY))
+         !$omp          , meshing_zones__, zones_offset__            &
+#endif
+         !$omp          , NFREQS, NNODES, NNODESL, NLIBS, NLIBSL     &
          !$omp          , NMODES, NMODES_EFF, MODES &
          !$omp          , NPSDEL, NTCOMPS, NDIRS, TCOMPS, DIRS          &
          !$omp          , MSHR_SVD_INFO, MSHR_SVD_LWORK, MSHR_SVD_WORK  &
@@ -589,10 +662,7 @@ contains
             n_bfm_pts_pre_ = 0
 
             ti = timing_clock()
-            zone_title = 'Crest zone at  '//DIRS_LABELS(idir)
 
-            ! init rect zone
-            call rz%zoneName(zone_title)
             call rz%setRotation(ROTATIONS(idir + 1))
 
             ! get base init point
@@ -657,7 +727,12 @@ contains
                      do_export_POD_trunc_(__export_POD_trunc_id__) = .false.
                   endif
                endif
+
+#if (defined(BSA_TEST_ZONES_ARRAY))
+               meshing_zones__(zones_offset__ + (idir-1)*NLimsP1 + ilim) = rz
+#else
                call rz%compute()
+#endif
 #ifndef BSA_USE_POD_DATA_CACHING
                n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
 #endif
@@ -688,13 +763,14 @@ contains
                endif
             endif
 
+#if (defined(BSA_TEST_ZONES_ARRAY))
+            meshing_zones__(zones_offset__ + (idir-1)*NLimsP1 + NLimsP1) = rz
+#else
             call rz%compute()
+#endif
 #ifndef BSA_USE_POD_DATA_CACHING
             te = timing_clock()
             n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
-            !$omp critical
-            ! call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), n_bfm_pts_pre_)
-            !$omp end critical
 #endif
          enddo ! n dirs
          !$omp end parallel do
@@ -713,6 +789,9 @@ contains
 #endif
          inter_modes_(NLimsP1) = id_im_last
 
+#if (defined(BSA_TEST_ZONES_ARRAY))
+         zones_offset__ = zones_offset__ + (NLimsP1*4)
+#endif
 
          ! From now on, no need for this anymore.
          if (do_export_POD_info_) then
@@ -731,8 +810,10 @@ contains
                character(len = 1)  :: left_known_coord_, right_known_coord_
                integer(int32)      :: left_sign_, right_sign_, main_refs_
                integer(int32)      :: idirP1_
+#if (defined(BSA_TEST_ZONES_ARRAY))
+               integer(bsa_int_t)  :: zones_local_offset_
+#endif
 
-               if (allocated(zone_title)) deallocate(zone_title)
                if (allocated(rots))       deallocate(rots)
                bases_ch = ' '
 
@@ -757,6 +838,9 @@ contains
 #endif
                !$omp          , basePts, policies, deltas                     &
                !$omp          , struct_data, wd, settings, limits             &
+#if (defined(BSA_TEST_ZONES_ARRAY))
+               !$omp          , meshing_zones__, zones_offset__               &
+#endif
                !$omp          , NFREQS, NNODES, NNODESL, NLIBS, NLIBSL        &
                !$omp          , NMODES, NMODES_EFF, MODES                     &
                !$omp          , NPSDEL, NTCOMPS, NDIRS, TCOMPS, DIRS          &
@@ -767,13 +851,6 @@ contains
 
                   ti = timing_clock()
                   idirP1_ = idir + 1
-
-                  ! treat initial opening rect zone
-                  ! NOTE: treat it singularly, since its complete definition
-                  !       will serve as base for definition of later rect zones.
-                  write(unit=z_name_, fmt='(a, i0, 3a)') &
-                     'Zones in quadrant n.  ', idir, '  (', DIRS_DIAG_LABELS(idir), ')'
-                  call rz%zoneName(z_name_)
 
                   left_rz_rot_  = ROTATIONS(idir)
                   main_rz_rot_  = ROTATIONS(idirP1_)
@@ -792,11 +869,13 @@ contains
                   call rz%setRefinements(main_refs_, main_refs_)
                   iim = 1
                   call rz%setInterestModeIndexPtr(iim)
-! #ifdef BSA_DEBUG
-!                   print '(1x, a, 2i5, 4g12.5)', '  @idir, ilim,  ptI,  ptE  =  ', &
-!                      idir, 1, rz%Ipt_%freqI(), rz%Ipt_%freqJ(), rz%Ept_%freqI(), rz%Ept_%freqJ()
-! #endif
+
+#if (defined(BSA_TEST_ZONES_ARRAY))
+                  zones_local_offset_ = zones_offset__ + ((idir-1)*(NLimsP1 + NLims*2)) + 1
+                  meshing_zones__(zones_local_offset_) = rz
+#else
                   call rz%compute()
+#endif
 #ifndef BSA_USE_POD_DATA_CACHING
                   n_bfm_pts_pre_ = rz%zoneTotNPts()
 #endif
@@ -829,11 +908,13 @@ contains
                      call rz%defineFromEndPtCoordAndBase(&
                         ptI, left_sign_ * rlimit_, 'j', &
                         rbase_, left_known_coord_, delta_main_rz_, delta_main_rz_)
-! #ifdef BSA_DEBUG
-!                      print '(1x, a, 2i5, 4g12.5)', '  @idir, ilim,  ptI,  ptE  =  ', &
-!                         idir, ilim, rz%Ipt_%freqI(), rz%Ipt_%freqJ(), rz%Ept_%freqI(), rz%Ept_%freqJ()
-! #endif
+
+#if (defined(BSA_TEST_ZONES_ARRAY))
+                     zones_local_offset_ = zones_local_offset_ + 1
+                     meshing_zones__(zones_local_offset_) = rz
+#else
                      call rz%compute()
+#endif
 #ifndef BSA_USE_POD_DATA_CACHING
                      n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
 #endif
@@ -849,11 +930,13 @@ contains
                      call rz%defineFromEndPtCoordAndBase(&
                         ptI, left_sign_ * init_freq_, left_known_coord_, &
                         rbase_, 'i', delta_main_rz_, delta_main_rz_)
-! #ifdef BSA_DEBUG
-!                      print '(1x, a, 2i5, 4g12.5)', '  @idir, ilim,  ptI,  ptE  =  ', &
-!                         idir, ilim, rz%Ipt_%freqI(), rz%Ipt_%freqJ(), rz%Ept_%freqI(), rz%Ept_%freqJ()
-! #endif
+
+#if (defined(BSA_TEST_ZONES_ARRAY))
+                     zones_local_offset_ = zones_local_offset_ + 1
+                     meshing_zones__(zones_local_offset_) = rz
+#else
                      call rz%compute()
+#endif
 #ifndef BSA_USE_POD_DATA_CACHING
                      n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
 #endif
@@ -865,11 +948,13 @@ contains
                      call rz%defineFromEndPtCoordAndBase(&
                         ptI, right_sign_ * init_freq_, right_known_coord_, &
                         rbase_, 'j', delta_main_rz_, delta_main_rz_)
-! #ifdef BSA_DEBUG
-!                      print '(1x, a, 2i5, 4g12.5)', '  @idir, ilim,  ptI,  ptE  =  ', &
-!                         idir, ilim, rz%Ipt_%freqI(), rz%Ipt_%freqJ(), rz%Ept_%freqI(), rz%Ept_%freqJ()
-! #endif
+
+#if (defined(BSA_TEST_ZONES_ARRAY))
+                     zones_local_offset_ = zones_local_offset_ + 1
+                     meshing_zones__(zones_local_offset_) = rz
+#else
                      call rz%compute()
+#endif
 #ifndef BSA_USE_POD_DATA_CACHING
                      n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
 #endif
@@ -885,14 +970,14 @@ contains
                enddo ! idir
                !$omp end parallel do
 
+#if (defined(BSA_TEST_ZONES_ARRAY))
+               zones_offset__ = zones_offset__ + (NLimsP1*4) + (NLims * 4 * 2)
+#endif
             end block
 
 
 
-
-
          elseif (ipre_mesh_type == BSA_PREMESH_TYPE_DIAG_CREST_YES) then
-
 
 
             !===================================================
@@ -905,11 +990,8 @@ contains
             ! BUG: "0" == all modes, not optimal at all
             call rz%setInterestModeIndexPtr(0)
 
-            if (allocated(zone_title)) deallocate(zone_title)
-
             !$omp parallel do &
             !$omp   default(firstprivate), &
-            !$omp   private(zone_title),   &
             !$omp   shared(maxF, basePts, df_I, df_J, pol   &
 #ifndef __GFORTRAN__
             !$omp          , ROTATIONS, LIM_SIGN_DIRS       &
@@ -927,12 +1009,6 @@ contains
 
                idir_t2 = idir * 2
 
-               if (idir == 1) then
-                  zone_title = 'Internal rect Padding (NORTH-EAST)'
-               else
-                  zone_title = 'Internal rect Padding (SOUTH-WEST)'
-               endif
-               call rz%zoneName(zone_title)
                call rz%setRotation(ROTATIONS(idir_t2))
                call rz%setPolicy(pol)
 
@@ -944,9 +1020,6 @@ contains
 
 #ifndef BSA_USE_POD_DATA_CACHING
                te = timing_clock()
-               !$omp critical
-               ! call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), rz%zoneTotNPts())
-               !$omp end critical
 #endif
 
             enddo ! idir
@@ -979,14 +1052,12 @@ contains
 
 
 #ifdef _OPENMP
-               if (allocated(zone_title)) deallocate(zone_title)
                if (allocated(rots))       deallocate(rots)
                allocate(rots(NLimsP1 * 2))
 
 
                !$omp parallel do &
                !$omp   default(firstprivate), &
-               !$omp   private(zone_title),   &
                !$omp   shared(msh_ZoneLimsInterestModes, bkgz, deltaI_S2_2 &
 #ifndef __GFORTRAN__
                !$omp          , ROTATIONS, LIM_SIGN_DIRS, DIRS_DIAG_LABELS &
@@ -1008,7 +1079,6 @@ contains
                   idir_t2        = idir * 2
 
                   ti = timing_clock()
-                  zone_title = 'Diagonal crest  -  '//DIRS_DIAG_LABELS(idir_t2)
 
                   iim  = 1  ! reset pointer for interest modes
 
@@ -1018,7 +1088,7 @@ contains
 
                   ! opening triang zone
                   pol = MPolicy_PEAK
-                  tz  = MTriangZone(zone_title)
+                  tz  = MTriangZone()
 
                   lim_I = basePts(idir)%freqI()
                   lim_J = basePts(idir)%freqJ()
@@ -1067,9 +1137,6 @@ contains
                         !$omp end critical
                         warn_zone_over_limits = ilim_init_ == NLims + 1
                      endif
-
-
-                     call rz%zoneName(zone_title)
 
 
                      ! Renew rotations Looper Iterator (since now inclined zones)
@@ -1218,9 +1285,6 @@ contains
 
 #ifndef BSA_USE_POD_DATA_CACHING
                      te = timing_clock()
-                     !$omp critical
-                     ! call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), n_bfm_pts_pre_)
-                     !$omp end critical
 #endif
                   endif ! pre mesh mode
 
@@ -1272,16 +1336,17 @@ contains
             endif
 
 #ifdef _OPENMP
-            if (allocated(zone_title)) deallocate(zone_title)
 
             !$omp parallel do  &
             !$omp   default(firstprivate),   &
-            !$omp   private(zone_title),     &
             !$omp   shared(df_I, df_J, basePts  &
 #ifndef __GFORTRAN__
             !$omp          , DIRS_LABELS, ROTATIONS, LIM_SIGN_DIRS, LEFT_RZ_SIGNS   &
 #endif
             !$omp          , struct_data, wd, settings, max_ext, maxext_sym_        &
+#if (defined(BSA_TEST_ZONES_ARRAY))
+            !$omp          , meshing_zones__, zones_offset__                        &
+#endif
             !$omp          , NFREQS, NNODES, NNODESL, NLIBS, NLIBSL, NMODES, DIRS   &
             !$omp          , NMODES_EFF, MODES, NPSDEL, NTCOMPS, NDIRS, TCOMPS      &
             !$omp          , MSHR_SVD_INFO, MSHR_SVD_LWORK, MSHR_SVD_WORK           &
@@ -1291,8 +1356,6 @@ contains
             do idir = 1, n_dirs_
 
                ti = timing_clock()
-               zone_title = 'External rect Padding '//DIRS_LABELS(idir)
-               call rz%zoneName(zone_title)
 
                call rz%setRotation(ROTATIONS(idir + 1))
 
@@ -1301,13 +1364,14 @@ contains
                   LIM_SIGN_DIRS(idir) * maxext_sym_(idir), &
                   LEFT_RZ_SIGNS(idir) * max_ext, force=.true.)
 
+#if (defined(BSA_TEST_ZONES_ARRAY))
+               meshing_zones__(zones_offset__ + idir) = rz
+#else
                call rz%compute()
+#endif
 
 #ifndef BSA_USE_POD_DATA_CACHING
                te = timing_clock()
-               !$omp critical
-               ! call logZonePremeshingTotTime_(zone_title, timing_getElapsedSeconds(te, ti), rz%zoneTotNPts())
-               !$omp end critical
 #endif
             enddo ! ndirs
             !$omp end parallel do
@@ -1330,7 +1394,6 @@ contains
 #endif
       if (allocated(limits))     deallocate(limits)
       if (allocated(policies))   deallocate(policies)
-      if (allocated(zone_title)) deallocate(zone_title)
 
 
       ! NOTE: Ok, now that premesh has finished, before going to actual meshing,
