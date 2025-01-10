@@ -1049,9 +1049,9 @@ contains ! utility procedures
       call bsa_Finalise()
 
       if (iexit == 0) then
-         print '(/ 1x, 2a)', INFOMSG, 'BSA terminated correctly.'
+         print '(1x, 2a)', INFOMSG, 'BSA terminated correctly.'
       else
-         print '(/ 1x, 2a, i0)', &
+         print '(1x, 2a, i0)', &
             ERRMSG, 'BSA terminated with error. Exit status code  ', iexit
          error stop
       endif
