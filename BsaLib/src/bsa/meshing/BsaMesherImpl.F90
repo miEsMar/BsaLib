@@ -149,12 +149,12 @@ contains
       ! if (.not. is_visual_) then
          print *
          print '(1x, 2a)', &
-            INFOMSG, ' Resume of total n. of points in meshing procedure:'
+            INFOMSG, 'Resume of total n. of points in meshing procedure:'
 #ifndef BSA_USE_POD_DATA_CACHING
-         print '(1x, 2a, i0)', MSGCONT, ' PRE-MESH   (BFM) : ', msh_bfmpts_pre_
+         print '(1x, 2a, i0)', MSGCONT, '  PRE-MESH   (BFM): ', msh_bfmpts_pre_
 #endif
-         print '(1x, 2a, i0)', MSGCONT, ' POST-MESH  (BFM) : ', msh_bfmpts_post_
-         print '(1x, 2a, i0)', MSGCONT, ' POST-MESH  (BRM) : ', msh_brmpts_post_
+         print '(1x, 2a, i0)', MSGCONT, '  POST-MESH  (BFM): ', msh_bfmpts_post_
+         print '(1x, 2a, i0)', MSGCONT, '  POST-MESH  (BRM): ', msh_brmpts_post_
       ! endif
 
 
@@ -1389,7 +1389,6 @@ contains
       998 continue
 #ifndef BSA_USE_POD_DATA_CACHING
       call print_premesh_zone_update(msh_NZones, .true.)
-      write(*, *) ''
       write(*, *) ''
 #endif
       if (allocated(limits))     deallocate(limits)

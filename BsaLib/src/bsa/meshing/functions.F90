@@ -160,11 +160,6 @@ contains
          deallocate(MSHR_SVD_WORK, stat=istat, errmsg=emsg)
          if (istat /= 0) call deallocKOMsg('MSHR_SVD_WORK', istat, emsg)
       endif
-
-#ifdef BSA_DEBUG
-      print '(1x, 2a)', &
-         INFOMSG, 'SVD related data cleaned -- ok.'
-#endif
    end subroutine
 
 
