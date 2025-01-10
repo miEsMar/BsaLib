@@ -107,14 +107,6 @@ Currently, the code has been compiled and tested under three different OS-compil
 3. `Linux Centos Fedora 8.7` - Intel Fortran Compilers (`ifort 2021.10.0-20230609`, `ifx 2023.2.0-20230721`)
 
 
-For the Proper Orthogonal Decomposition (POD) problem, two approaches have been tested, for configurations
-1 and 3:
-
-- Linkage to proprietary `Intel MKL` (Math Kernel Libraries)
-- Linkage to [LAPACK](https://www.netlib.org/lapack/) native implementation 
-(**NOTE**: from direct source build in configuration 1)
-
-
 # <a id="furhter_developments">What's missing? Further developments</a>
 
 Mathematical:
