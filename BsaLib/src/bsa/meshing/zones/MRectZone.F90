@@ -21,13 +21,14 @@ module BsaLib_MRectZone
    implicit none (type, external)
    private
 
+
    type, public, extends(M2DPolygZone_t) :: MRectZone_t
 
       !> Init point (from where everything else is made reference)
-      type(MPoint_t) :: Ipt_
+      type(MPoint_t) :: Ipt_ = MPoint_t()
 
       !> End point
-      type(MPoint_t) :: Ept_
+      type(MPoint_t) :: Ept_ = MPoint_t()
 
       !> Rect base along I-dir (x axis)
       real(bsa_real_t) :: base_I_ = 0._bsa_real_t
@@ -41,8 +42,10 @@ module BsaLib_MRectZone
       !> Delta freq [Hz] along J-dir (y axis)
       real(bsa_real_t) :: deltaf_J_ = 0._bsa_real_t
 
-
+      !> keeps track if refinements were set before compute()
       logical, private :: refmts_set_ = .false.
+
+      !> keeps track if deltas were set before compute()
       logical, private :: deltas_set_ = .false.
 
    contains
@@ -66,7 +69,7 @@ module BsaLib_MRectZone
       ! procedure, pass :: validateDeltas
       ! procedure, pass :: reconstructZoneBaseMesh
       procedure, pass, public  :: compute => compute_rz_
-      procedure, pass, private :: compute_rz_
+      procedure, pass :: compute_rz_
       procedure, pass, public  :: getNthQuadVtx
       procedure, pass, public  :: dump => dumpRZ
       procedure, pass, public  :: undump => undumpRZ
@@ -84,7 +87,7 @@ module BsaLib_MRectZone
 
    ! main interface to module procedures
    interface
-      
+
       module function MRectZone_t_custom_constructor(rot, name) result(this)
          real(bsa_real_t), intent(in), optional :: rot
          character(len=*), intent(in), optional :: name
