@@ -18,7 +18,7 @@ submodule(BsaLib) BsaLib_MesherImpl
    use BsaLib_Data
    use BsaLib_MPolicy
    use BsaLib_IO,          only: unit_debug_, IO_BFMDUMP_BASE_UNIT, io_units_bfmdump, allocKOMsg, deallocKOMsg
-   use BsaLib_MPoint,      only: MPoint_t, MPoint
+   use BsaLib_MPoint,      only: MPoint_t
    use BsaLib_MRectZone,   only: MRectZone_t
    use BsaLib_MTriangZone, only: MTriangZone_t
    use BsaLib_Functions,   only: prefetchSVDWorkDim_  &
@@ -436,7 +436,7 @@ contains
       call bkgz%setRotation(0._bsa_real_t)
       if (settings%i_bisp_sym_ == BSA_SPATIAL_SYM_HALF) then
          base_i = base_i / 2._bsa_real_t
-         call bkgz%define(MPoint(0._bsa_real_t, - base_i), 'i', base_i, base_j)
+         call bkgz%define(MPoint_t(0._bsa_real_t, -base_i), 'i', base_i, base_j)
       else
          call bkgz%define(MPoint_t(), 'c', base_i, base_j)
       endif
@@ -1092,8 +1092,8 @@ contains
 
                   lim_I = basePts(idir)%fi_
                   lim_J = basePts(idir)%fj_
-                  ptI   = MPoint(lim_I + tmpdelta,  lim_J)
-                  ptA   = MPoint(lim_I,  lim_J - tmpdelta)
+                  ptI   = MPoint_t(lim_I + tmpdelta,  lim_J)
+                  ptA   = MPoint_t(lim_I,  lim_J - tmpdelta)
 
                   ! TODO: check these lines
                   rftmp = bkgz%refinements()
@@ -1199,7 +1199,7 @@ contains
                            iim = iim + nim + 1
                         endif
 
-                        ptI = MPoint(lim * LIM_SIGN_DIRS(idir_t2), rz%Ipt_%fj_)
+                        ptI = MPoint_t(lim * LIM_SIGN_DIRS(idir_t2), rz%Ipt_%fj_)
                         call tz%setRefinements(rz%nj_, rz%nj_)
                         call tz%setPolicy(pol)
                         call tz%define(ptI, ptA, rz%Ipt_)
@@ -1227,7 +1227,7 @@ contains
                         ! south-west (north-east)
 
                         ! 1. triang leveling zone
-                        ptI = MPoint(ptB%fi_, - lim * LIM_SIGN_DIRS(idir_t2))
+                        ptI = MPoint_t(ptB%fi_, - lim * LIM_SIGN_DIRS(idir_t2))
                         call tz%define(ptI, ptB, ptE)
                         call tz%compute()
 #ifndef BSA_USE_POD_DATA_CACHING
@@ -1270,10 +1270,10 @@ contains
                         nj = settings%bkg_base_rfmnt_ * pol%delta_fJ_fct_
                         call tz%setRefinements(ni, nj)
 
-                        ptI = MPoint(maxF * LIM_SIGN_DIRS(idir_t2), - maxF * LIM_SIGN_DIRS(idir_t2))
+                        ptI = MPoint_t(maxF * LIM_SIGN_DIRS(idir_t2), - maxF * LIM_SIGN_DIRS(idir_t2))
 
-                        ptA = MPoint(ptI%fi_ - (deltaI_S2_2 * LIM_SIGN_DIRS(idir_t2)), ptI%fj_)
-                        ptB = MPoint(ptI%fi_, ptI%fj_ + (deltaI_S2_2 * LIM_SIGN_DIRS(idir_t2)))
+                        ptA = MPoint_t(ptI%fi_ - (deltaI_S2_2 * LIM_SIGN_DIRS(idir_t2)), ptI%fj_)
+                        ptB = MPoint_t(ptI%fi_, ptI%fj_ + (deltaI_S2_2 * LIM_SIGN_DIRS(idir_t2)))
 
                         call tz%define(ptI, ptA, ptB)
                         call tz%compute()
@@ -1317,9 +1317,9 @@ contains
             df_J = df_J_ref * pol%delta_fJ_fct_
 
             if (settings%i_bisp_sym_ == BSA_SPATIAL_SYM_HALF) then
-               basePts(1) = MPoint(0._bsa_real_t, maxF)
-               basePts(2) = MPoint( maxF, maxF)
-               basePts(3) = MPoint( maxF,-maxF)
+               basePts(1) = MPoint_t(0._bsa_real_t, maxF)
+               basePts(2) = MPoint_t( maxF, maxF)
+               basePts(3) = MPoint_t( maxF,-maxF)
 
                maxext_sym_(1) = max_ext
                maxext_sym_(2) = max_ext
@@ -1327,10 +1327,10 @@ contains
 
                n_dirs_ = N_DIRS_HALF
             else
-               basePts(1) = MPoint(-maxF, maxF)
-               basePts(2) = MPoint( maxF, maxF)
-               basePts(3) = MPoint( maxF,-maxF)
-               basePts(4) = MPoint(-maxF,-maxF)
+               basePts(1) = MPoint_t(-maxF, maxF)
+               basePts(2) = MPoint_t( maxF, maxF)
+               basePts(3) = MPoint_t( maxF,-maxF)
+               basePts(4) = MPoint_t(-maxF,-maxF)
 
                maxext_sym_(:) = max_ext
             endif

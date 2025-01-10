@@ -254,7 +254,7 @@ __mod_sub_compute subroutine __sub_name_compute(this)
       fj(1) = fj(1) + dfJj
 
 #  ifdef __zone_layout_validation__
-      pt = MPoint(fi(1), fj(1))
+      pt = MPoint_t(fi(1), fj(1))
       if (.not. pt == this%Apt_) &
          call bsa_Abort('First end point does not match triang A point. Aborting.')
 #  endif
@@ -355,7 +355,7 @@ __mod_sub_compute subroutine __sub_name_compute(this)
 
 
 #  ifdef __zone_layout_validation__
-      pt = MPoint(base_fi(1), base_fj(1))
+      pt = MPoint_t(base_fi(1), base_fj(1))
       if (.not. pt == this%Bpt_) &
          call bsa_Abort('End point does not match B triang point. Aborting.')
 #  endif

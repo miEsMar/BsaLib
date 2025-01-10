@@ -18,7 +18,7 @@ module BsaLib_MPoint
    use BsaLib_CONSTANTS
    implicit none (type, external)
    private
-   public :: getPointsDistance, MPoint
+   public :: getPointsDistance
 
 
    type, public :: MPoint_t
@@ -35,13 +35,6 @@ module BsaLib_MPoint
       procedure, pass :: getNewPointFromDistAndRot
       procedure, pass :: scale => scaleInt, scaleReal
    end type MPoint_t
-
-   ! class constructors
-   interface MPoint
-      module procedure MPoint_as_compiler
-      module procedure MPoint_from_ints
-      module procedure MPoint_from_MPoint
-   end interface
 
 
    interface operator(==)
@@ -70,42 +63,7 @@ module BsaLib_MPoint
    public :: assignment(=)
 
 
-
 contains
-
-
-
-   pure function MPoint_as_compiler(fi, fj) result(this)
-      real(bsa_real_t), intent(in) :: fi, fj
-      type(MPoint_t) :: this
-
-      ! BUG: maybe here needed to use rounding precision
-      this%fi_ = fi
-      this%fj_ = fj
-   end function
-
-
-   pure function MPoint_from_ints(fi, fj) result(this)
-      integer, intent(in) :: fi, fj
-      type(MPoint_t) :: this
-
-      this = MPoint_as_compiler(real(fi, bsa_real_t), real(fj, bsa_real_t))
-   end function 
-
-
-   pure function MPoint_from_MPoint(p) result(this)
-      class(MPoint_t), intent(in) :: p
-      type(MPoint_t) :: this
-
-      ! make a copy of instance member variables.
-      this%fi_ = p%fi_
-      this%fj_ = p%fj_
-   end function
-
-
-
-
-
 
 
    subroutine setFreqs(this, fi, fj)
@@ -115,7 +73,6 @@ contains
       this%fi_ = fi
       this%fj_ = fj
    end subroutine
-
 
 
 
@@ -130,8 +87,6 @@ contains
 
       dist = sqrt(dx*dx + dy*dy)
    end function getPointsDistance
-
-
 
 
 
@@ -153,6 +108,7 @@ contains
 
       dist = abs(this%fi_ - i_coord)
    end function getDistanceIfromCoord
+
 
    elemental function getDistanceIfromPt(this, p) result(dist)
       class(MPoint_t), intent(in) :: this

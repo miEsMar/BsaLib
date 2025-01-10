@@ -27,7 +27,7 @@ submodule(BsaLib_MRectZone) BsaLib_MRectZoneImpl
    use BsaLib_CONSTANTS
    use BsaLib_Data,     only: bsa_Abort, msh_max_zone_NPts
    use BsaLib_IO,       only: unit_debug_, io_units_bfmdump
-   use BsaLib_MPoint,   only: MPoint, MPoint_t, getPointsDistance
+   use BsaLib_MPoint,   only: MPoint_t, getPointsDistance
    use BsaLib_MZone,    only: MZone_ID, DumpZone
    implicit none (type, external)
 
@@ -535,7 +535,7 @@ contains
          call bsa_Abort('Unvalid base direction identifier. Must be one of "i"/"j".')
 
       ! backup init point
-      this%Ipt_ = MPoint(Pi)
+      this%Ipt_ = Pi
 
 
       ! get A or B point
@@ -631,8 +631,8 @@ contains
                bjd2         = this%base_J_ / 2
             endif
 
-            this%Ipt_ = MPoint(pt%fi_ - bid2, pt%fj_ - bjd2)
-            this%Ept_ = MPoint(pt%fi_ + bid2, pt%fj_ + bjd2)
+            this%Ipt_ = MPoint_t(pt%fi_ - bid2, pt%fj_ - bjd2)
+            this%Ept_ = MPoint_t(pt%fi_ + bid2, pt%fj_ + bjd2)
          end block
 
       else ! loc == 'i' or 'e'
@@ -703,14 +703,12 @@ contains
       select case (loc)
 
       case ('i')
-         this%Ipt_ = MPoint(pt)
-
-         this%Ept_ = MPoint(pt%fi_ + di, pt%fj_ + dj)
+         this%Ipt_ = pt
+         this%Ept_ = MPoint_t(pt%fi_ + di, pt%fj_ + dj)
 
       case ('e')
-         this%Ept_ = MPoint(pt)
-
-         this%Ipt_ = MPoint(pt%fi_ - di, pt%fj_ - dj)
+         this%Ept_ = pt
+         this%Ipt_ = MPoint_t(pt%fi_ - di, pt%fj_ - dj)
       end select
    end subroutine
 
@@ -816,7 +814,7 @@ contains
             endif
 
             fj = pt%fj_ + cd
-            Pe = MPoint(coord_val, fj)
+            Pe = MPoint_t(coord_val, fj)
 
 
          elseif (known_coord == 'j') then ! we search DI
@@ -848,7 +846,7 @@ contains
             endif
 
             fi = pt%fi_ + cd
-            Pe = MPoint(fi, coord_val)
+            Pe = MPoint_t(fi, coord_val)
 
          endif ! known_coord
 
@@ -888,7 +886,7 @@ contains
             endif
 
             fj = pt%fj_ + cd
-            Pe = MPoint(coord_val, fj)
+            Pe = MPoint_t(coord_val, fj)
 
 
          elseif (known_coord == 'j') then
@@ -921,7 +919,7 @@ contains
             endif
 
             fi = pt%fi_ + cd
-            Pe = MPoint(fi, coord_val)
+            Pe = MPoint_t(fi, coord_val)
 
          endif ! known_coord
 
@@ -1165,7 +1163,7 @@ contains
 
       endif
 
-      pt = MPoint(this%Ipt_%fi_ + di, this%Ipt_%fj_ + dj)
+      pt = MPoint_t(this%Ipt_%fi_ + di, this%Ipt_%fj_ + dj)
    end function
 
 
