@@ -33,7 +33,6 @@
 #endif
 
 
-
 __mod_sub_compute subroutine __sub_name_compute(this)
    !! Zone computation (pre-meshing phase).
    use BsaLib_Data, only: &
@@ -448,19 +447,17 @@ end subroutine __sub_name_compute
 
 
 
-
-
+#if (defined(BSA_USE_POD_DATA_CACHING)) || (defined(_OPENMP))
+# define __new_interp_proc__
+#endif
 
 
 #if (defined(BSA_USE_POD_DATA_CACHING)) || (!defined(_BSA_M3MF_ONLY_PREMESH))
 # define __update_m3mf__
 #endif
 
-   subroutine __sub_name_interp( this &
-#ifndef BSA_USE_POD_DATA_CACHING
-      & , bfm_undump &
-#endif
-      & , pdata )
+
+   subroutine __sub_name_interp(this, bfm_undump_ptr, pdata)
       !! Implementation of HTPC interpolation method for a rect/triang zone,
       !! including MultiLevel-Refinement for BFM data.
       use BsaLib_Data, only: &
@@ -479,12 +476,11 @@ end subroutine __sub_name_compute
          , write_brm_fptr_
       use BsaLib_MPolicy, only: MPolicy_t
       !
-      class(__this_type), intent(inout) :: this
-#ifndef BSA_USE_POD_DATA_CACHING
-      real(bsa_real_t), intent(in)          :: bfm_undump(:, :)
-#endif
-      class(*), pointer, intent(in) :: pdata
+      class(__this_type),     intent(inout) :: this
+      real(bsa_real_t), pointer, intent(in) :: bfm_undump_ptr(:, :)
+      class(*),         pointer, intent(in) :: pdata
 
+      real(bsa_real_t), pointer :: bfm_undump_Local_ptr(:, :) => null()
       class(*), pointer :: pdata_ptr => null()
 
       type(MPolicy_t) :: pol
@@ -540,7 +536,7 @@ end subroutine __sub_name_compute
 #ifdef __new_interp_proc__
       real(bsa_real_t), allocatable :: fi_v_(:), fj_v_(:)
 # ifdef BSA_USE_POD_DATA_CACHING
-      real(bsa_real_t), allocatable :: bfm_undump(:, :)
+      real(bsa_real_t), allocatable, target :: bfm_undump(:, :)
       integer(int32) :: i_bfm
 #   ifdef __triang_zone__
       integer(int32) :: i_bfm_offs
@@ -898,6 +894,7 @@ end subroutine __sub_name_compute
 # define __FREQ_J_shift_  fj_v_(i_brm_shift) = fj_ptr(1)
 #endif
 
+      bfm_undump_Local_ptr => bfm_undump_ptr
 
 #ifdef __new_interp_proc__
 # ifdef BSA_USE_POD_DATA_CACHING
@@ -948,6 +945,9 @@ end subroutine __sub_name_compute
          if (ist /= 0) call bsa_Abort("Error allocating ""bfm_undump"" in interpolating RZ.")
       endif
       call getBFM_msh(bfm_undump, fi_v_, fj_v_)
+
+      bfm_undump_Local_ptr => bfm_undump
+
 
 #   ifdef __local_debug_write__
       fi_v_save_ = fi_v_
@@ -1022,7 +1022,7 @@ end subroutine __sub_name_compute
 # endif
       i_bfm              = 1
 #endif
-      bfmtail            = bfm_undump(:, 1:1)
+      bfmtail            = bfm_undump_Local_ptr(:, 1:1)
 #ifdef __update_m3mf__
       intg_bfm           = bfmtail(:, 1) * __vtx_infl_r_bfm
 #endif
@@ -1049,7 +1049,7 @@ end subroutine __sub_name_compute
             fj_baseptJ(1) = fj_baseptJ(1) + dfJj_bfm_ref_
 #ifdef BSA_USE_POD_DATA_CACHING
             i_bfm   = i_bfm + 1
-            bfmhead = bfm_undump(:, i_bfm:i_bfm)
+            bfmhead = bfm_undump_Local_ptr(:, i_bfm:i_bfm)
 #else
              call getBFM_msh(bfmhead, fi_baseptJ, fj_baseptJ)
 #endif
@@ -1119,9 +1119,9 @@ end subroutine __sub_name_compute
          !
 #ifdef BSA_USE_POD_DATA_CACHING
          i_bfm         = i_bfm + 1
-         bfmhead(:, 1) = bfm_undump(:, i_bfm)
+         bfmhead(:, 1) = bfm_undump_Local_ptr(:, i_bfm)
 #else
-         bfmhead(:, 1) = bfm_undump(:, pJhead) ! OK because we stored it NJ majour.
+         bfmhead(:, 1) = bfm_undump_Local_ptr(:, pJhead) ! OK because we stored it NJ majour.
 #endif
 #ifdef __update_m3mf__
          intg_bfm      = intg_bfm + bfmhead(:, 1) * __brd_infl_r_bfm
@@ -1251,7 +1251,7 @@ end subroutine __sub_name_compute
             fj(1)         = fj_baseptJ(1)
 #ifdef BSA_USE_POD_DATA_CACHING
             i_bfm   = i_bfm + 1
-            bfmtail = bfm_undump(:, i_bfm:i_bfm)
+            bfmtail = bfm_undump_Local_ptr(:, i_bfm:i_bfm)
 #else
              call getBFM_msh(bfmtail, fi, fj)
 #endif
@@ -1290,7 +1290,7 @@ end subroutine __sub_name_compute
                   fj_baseptJ(1) = fj_baseptJ(1) + dfJj_bfm_ref_
 #ifdef BSA_USE_POD_DATA_CACHING
                   i_bfm   = i_bfm + 1
-                  bfmhead = bfm_undump(:, i_bfm:i_bfm)
+                  bfmhead = bfm_undump_Local_ptr(:, i_bfm:i_bfm)
 #else
                    call getBFM_msh(bfmhead, fi_baseptJ, fj_baseptJ)
 #endif
@@ -1366,7 +1366,7 @@ end subroutine __sub_name_compute
                fj_baseptJ(1) = fj_baseptJ(1) + dfJj_bfm_ref_
 #ifdef BSA_USE_POD_DATA_CACHING
                i_bfm   = i_bfm + 1
-               bfmhead = bfm_undump(:, i_bfm:i_bfm)
+               bfmhead = bfm_undump_Local_ptr(:, i_bfm:i_bfm)
 #else
                 call getBFM_msh(bfmhead, fi_baseptJ, fj_baseptJ)
 #endif
@@ -1439,7 +1439,7 @@ end subroutine __sub_name_compute
                fj_baseptJ(1) = fj_baseptJ(1) + dfJj_bfm_ref_
 # ifdef BSA_USE_POD_DATA_CACHING
                i_bfm   = i_bfm + 1
-               bfmhead = bfm_undump(:, i_bfm:i_bfm)
+               bfmhead = bfm_undump_Local_ptr(:, i_bfm:i_bfm)
 # else
                 call getBFM_msh(bfmhead, fi_baseptJ, fj_baseptJ)
 # endif
@@ -1695,10 +1695,10 @@ end subroutine __sub_name_compute
 
 #ifdef BSA_USE_POD_DATA_CACHING
          i_bfm         = i_bfm + 1
-         bfmtail(:, 1) = bfm_undump(:, i_bfm)
+         bfmtail(:, 1) = bfm_undump_Local_ptr(:, i_bfm)
 #else
          i_bfm_old     = i_bfm_old + 1
-         bfmtail(:, 1) = bfm_undump(:, i_bfm_old)
+         bfmtail(:, 1) = bfm_undump_Local_ptr(:, i_bfm_old)
 #endif
 #ifdef __update_m3mf__
          intg_bfm            = intg_bfm + bfmtail(:, 1) * __brd_infl_r_bfm
@@ -1734,7 +1734,7 @@ end subroutine __sub_name_compute
                fj_baseptJ(1) = fj_baseptJ(1) + dfJj_bfm_ref_
 #ifdef BSA_USE_POD_DATA_CACHING
                i_bfm   = i_bfm + 1
-               bfmhead = bfm_undump(:, i_bfm:i_bfm)
+               bfmhead = bfm_undump_Local_ptr(:, i_bfm:i_bfm)
 #else
                 call getBFM_msh(bfmhead, fi_baseptJ, fj_baseptJ)
 #endif
@@ -1804,10 +1804,10 @@ end subroutine __sub_name_compute
 
 #ifdef BSA_USE_POD_DATA_CACHING
             i_bfm         = i_bfm + 1
-            bfmhead(:, 1) = bfm_undump(:, i_bfm)
+            bfmhead(:, 1) = bfm_undump_Local_ptr(:, i_bfm)
 #else
             i_bfm_old     = i_bfm_old + 1
-            bfmhead(:, 1) = bfm_undump(:, i_bfm_old)
+            bfmhead(:, 1) = bfm_undump_Local_ptr(:, i_bfm_old)
 #endif
 #ifdef __update_m3mf__
             intg_bfm      = intg_bfm + bfmhead(:, 1) * ctr_infl_bfm
@@ -2120,7 +2120,7 @@ end subroutine __sub_name_compute
       write(iun, '( *(g, 2x) )') dfJi_bfm_ref_, dfJj_bfm_ref_
       write(iun, '( *(g, 2x) )') fj_v_save_
       do i = 1, ni_bfm_ref_*nj_bfm_ref_
-         write(iun, '( *(g, 2x) )')  bfm_undump(:, i)
+         write(iun, '( *(g, 2x) )')  bfm_undump_Local_ptr(:, i)
       enddo
       deallocate(fi_v_save_)
       deallocate(fj_v_save_)

@@ -19,5 +19,6 @@ cmake \
     -D enable-gpu-code=OFF \
     -D enable-cuda=ON \
     -D enable-gpu-double=OFF \
+    -D enable-pod-caching=OFF \
     -S . -B ${builddir}
 

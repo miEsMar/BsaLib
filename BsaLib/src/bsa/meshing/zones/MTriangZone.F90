@@ -214,16 +214,10 @@ module BsaLib_MTriangZone
 
 
       !> Implementation of triang zone interpolation methods
-      module subroutine interpolateTZ( this &
-#ifndef BSA_USE_POD_DATA_CACHING
-         & , bfm   &
-#endif
-         & , pdata )
-         class(MTriangZone_t), intent(inout) :: this
-#ifndef BSA_USE_POD_DATA_CACHING
-         real(bsa_real_t), intent(in)  :: bfm(:, :)
-#endif
-         class(*), pointer, intent(in) :: pdata
+      module subroutine interpolateTZ(this, bfm, pdata)
+         class(MTriangZone_t),   intent(inout) :: this
+         real(bsa_real_t), pointer, intent(in) :: bfm(:, :)
+         class(*),         pointer, intent(in) :: pdata
       end subroutine
 
 

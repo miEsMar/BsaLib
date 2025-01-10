@@ -1227,30 +1227,15 @@ contains
 
 
 
-
-#if (defined(BSA_USE_POD_DATA_CACHING)) || (defined(_OPENMP))
-# define __new_interp_proc__
-#endif
-
-   module subroutine interpolateRZ( this &
-#ifndef BSA_USE_POD_DATA_CACHING
-# define __bfm_undump__ bfm,
-      & , bfm &
-#else
-# define __bfm_undump__
-#endif
-      & , pdata )
+   module subroutine interpolateRZ(this, bfm, pdata)
       !! Implementation of rect zone interpolation wrapper routine
-      class(MRectZone_t), intent(inout) :: this
-#ifndef BSA_USE_POD_DATA_CACHING
-      real(bsa_real_t), intent(in)  :: bfm(:, :)
-#endif
-      class(*), pointer, intent(in) :: pdata
+      class(MRectZone_t),     intent(inout) :: this
+      real(bsa_real_t), pointer, intent(in) :: bfm(:, :)
+      class(*),         pointer, intent(in) :: pdata
 
       ! NOTE: for the moment only supporting HTPC method
-      call interpolateRZ_HTPC_v3(this, __bfm_undump__  pdata)
+      call interpolateRZ_HTPC_v3(this, bfm, pdata)
    end subroutine
-
 
 
 #include "_shared_poly2d.fi"
