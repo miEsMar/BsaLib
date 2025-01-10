@@ -22,10 +22,10 @@ module BsaLib_MPoint
 
 
    type, public :: MPoint_t
-   
-      real(bsa_real_t), private :: fi_ = 0._bsa_real_t
-      real(bsa_real_t), private :: fj_ = 0._bsa_real_t
-   
+
+      real(bsa_real_t) :: fi_ = 0._bsa_real_t
+      real(bsa_real_t) :: fj_ = 0._bsa_real_t
+
    contains
 
       procedure, pass :: setFreqs
