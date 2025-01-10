@@ -1441,13 +1441,10 @@ contains
       type(MRectZone_t), target   :: rz
       type(MTriangZone_t), target :: tz
 
-      real(bsa_real_t), pointer :: bfm_undump_ptr(:, :) => null()
-#ifndef BSA_USE_POD_DATA_CACHING
       real(bsa_real_t), allocatable, target :: bfm_undump(:, :)
 # ifndef _OPENMP
       character(len = 128) :: emsg
 # endif
-#endif
 
       type(BsaExportBaseData_t), target :: export_data_base_local_
       class(*), pointer :: export_data_base_ptr_ => null()
@@ -1472,7 +1469,6 @@ contains
       !       needed. Otherwise, for serial case, at most  msh_max_zone_NPts  memory needed (once).
       allocate(bfm_undump(dimM_bisp_, ival2), stat=izone_id, errmsg=emsg)
       if (izone_id /= 0) call allocKOMsg('bfm_undump', izone_id, emsg)
-      bfm_undump_ptr => bfm_undump
 # endif
 #endif
 
@@ -1502,15 +1498,11 @@ contains
          INFOMSG, 'Interpolating zone n. ', 1, ', with ID=  ', izone_id
       if (do_export_base_) export_data_base_local_%idZone_ = izone_id
       call UndumpZone( rz   __bfm_undump__)
-#ifndef BSA_USE_POD_DATA_CACHING
-      bfm_undump_ptr => bfm_undump
-#endif
-      call rz%interpolate(bfm_undump_ptr, export_data_base_ptr_)
+      call rz%interpolate(bfm_undump, export_data_base_ptr_)
 
 
 #ifndef BSA_USE_POD_DATA_CACHING
 # if  (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
-      bfm_undump_ptr => null()
       deallocate(bfm_undump)  !<-- better to copy a null pointer than a whole bunch of memory.
       if (associated(export_data_base_ptr_)) export_data_base_ptr_ => null()
 # endif
@@ -1526,7 +1518,6 @@ contains
 
       !$omp parallel do &
       !$omp   firstprivate(export_data_base_local_, export_data_base_ptr_), &
-      !$omp   firstprivate(bfm_undump_ptr), &
       !$omp   private(z, rz, tz, izone_id), &
 # ifndef BSA_USE_POD_DATA_CACHING
       !$omp   private(bfm_undump), &
@@ -1565,15 +1556,11 @@ contains
          !$omp end critical
 #endif
 
-#ifndef BSA_USE_POD_DATA_CACHING
-         bfm_undump_ptr => bfm_undump
-#endif
-
          if (do_export_base_) then
             export_data_base_local_%idZone_ = izone_id
             if (.not. associated(export_data_base_ptr_)) export_data_base_ptr_ => export_data_base_local_
          endif
-         call z%interpolate(bfm_undump_ptr, export_data_base_ptr_)
+         call z%interpolate(bfm_undump, export_data_base_ptr_)
       enddo ! nZones
 #if  (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
       !$omp end parallel do
