@@ -87,10 +87,10 @@ contains
 
 
 #ifdef BSA_DEBUG
-      print '(1x, a, i5)', '@BsaClassicImpl::getFM_full_tnm_vect_cls_() : i pad length = ', i_pad_len
-      print '(1x, a, i5)', '@BsaClassicImpl::getFM_full_tnm_vect_cls_() : init index   = ', iin
-      print '(1x, a, i5)', '@BsaClassicImpl::getFM_full_tnm_vect_cls_() : end  index   = ', ien
-      print '(1x, a, i5)', '@BsaClassicImpl::getFM_full_tnm_vect_cls_() : pad range    = ', ien - iin + 1
+      print '(1x, a, i5)', '@BsaClassicImpl::getFM_full_tnm_vect_cls_():  i pad length = ', i_pad_len
+      print '(1x, a, i5)', '@BsaClassicImpl::getFM_full_tnm_vect_cls_():  init index   = ', iin
+      print '(1x, a, i5)', '@BsaClassicImpl::getFM_full_tnm_vect_cls_():  end  index   = ', ien
+      print '(1x, a, i5)', '@BsaClassicImpl::getFM_full_tnm_vect_cls_():  pad range    = ', ien - iin + 1
 #endif
 
 
