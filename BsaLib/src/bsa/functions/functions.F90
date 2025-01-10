@@ -101,7 +101,7 @@ module BsaLib_Functions
          real(bsa_real_t), intent(in) :: f(NFREQS)
          real(bsa_real_t), intent(in) :: Suvw(NFREQS, NPSDEL)
          real(bsa_real_t), intent(inout), allocatable :: psd(:, :), bisp(:, :, :)
-      end subroutine   
+      end subroutine
 
 
 
@@ -169,7 +169,7 @@ module BsaLib_Functions
 contains
 
 
-   module subroutine setBsaFunctionLocalVars()
+   subroutine setBsaFunctionLocalVars()
 
       NFREQS  = settings%nfreqs_
 
