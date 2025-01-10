@@ -112,18 +112,16 @@ if (enable-openmp)
    #       However, it now seems to be fixed using version 3.31.3.
    #       If using previous version where this still fails, then you need 
    #       to uncommend the if statement below.
-
-   # # Uncomment this if find_package() fails on Windows.
-   # if (WIN32)
-   #    if (intel-compiler)
-   #       target_compile_options( BsaLib PRIVATE "-Qopenmp" )
-   #    else()
-   #       target_compile_options( BsaLib PRIVATE "-fopenmp" )
-   #    endif()
-   # else()
+   if (CMAKE_VERSION VERSION_LESS "3.31.0" AND WIN32)
+      if (intel-compiler)
+         target_compile_options( BsaLib PRIVATE "-Qopenmp" )
+      else()
+         target_compile_options( BsaLib PRIVATE "-fopenmp" )
+      endif()
+   else()
       find_package( OpenMP REQUIRED COMPONENTS Fortran )
       target_link_libraries( BsaLib PUBLIC OpenMP::OpenMP_Fortran )
-   # endif()
+   endif()
 else()
    if ( intel-compiler )
       target_compile_options( BsaLib PRIVATE $<IF:${WIN32},-assume:nocc_omp,> )
@@ -154,16 +152,11 @@ endif()
 # ******************************************************
 # LAPACK and BLAS
 # ******************************************************
+set(BLA_VENDOR "All")
 if (intel-compiler AND enable-mkl)
    message( STATUS "NOTE: Using Intel MKL libraries." )
-   set(BLA_VENDOR Intel10_64lp)
-
-   # NOTE: this might be removed, and only use find_package()
-   if (WIN32)
-      target_compile_options( BsaLib INTERFACE "-Qmkl:parallel" )
-   else()
-      target_compile_options( BsaLib INTERFACE "-qmkl=parallel" )
-   endif()
+   # See: https://cmake.org/cmake/help/latest/module/FindBLAS.html#blas-lapack-vendors
+   set(BLA_VENDOR "Intel10_64lp")
 endif()
 find_package( LAPACK REQUIRED )
 target_link_libraries( BsaLib PRIVATE ${LAPACK_LIBRARIES} )
