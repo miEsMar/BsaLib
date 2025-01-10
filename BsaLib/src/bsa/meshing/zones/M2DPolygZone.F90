@@ -22,7 +22,7 @@ module BsaLib_M2DPolygZone
    implicit none (type, external)
    private
 
-   type, public, abstract, extends(MZone_t) :: M2DPolygZone_t   
+   type, public, abstract, extends(MZone_t) :: M2DPolygZone_t
 
       !> Refinement (n meshing pts) along I-dir
       integer(int32) :: ni_ = 0
