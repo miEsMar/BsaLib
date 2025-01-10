@@ -45,9 +45,6 @@ contains
       call DefaultInitBaseZone(this)
 
       if (present(rot))  this%rot_  = rot
-
-      ! NOTE: here no need to call setName() method.
-      if (present(name)) call this%zoneName(name)
    end function
 
 
@@ -1211,12 +1208,6 @@ contains
 
       ! NOTE: maybe useless ?
       write(io_units_bfmdump(1)) this%ni_, this%nj_
-
-#ifdef _BSA_ZONE_DEBUG
-      write(unit=4533, fmt=*) &
-         'Refms at  RZ=', trim(this%name_), this%ni_, this%nj_, &
-         'thread id= ', omp_get_thread_num()
-#endif
    end subroutine dumpRZ
 
 

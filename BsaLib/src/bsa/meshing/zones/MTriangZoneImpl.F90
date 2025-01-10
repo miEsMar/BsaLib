@@ -41,7 +41,6 @@ contains
       character(len = *), intent(in), optional :: name
       type(MTriangZone_t) :: this
 
-      if (present(name)) call this%zoneName(name)
    end function
 
 
@@ -525,12 +524,6 @@ contains
       ! NOTE: useless, since rot might reconstructed from points
       write(io_units_bfmdump(1)) this%rot_
       write(io_units_bfmdump(1)) this%ni_, this%nj_
-
-#ifdef _BSA_ZONE_DEBUG
-      write(unit=4533, fmt=*) &
-         'Refms at  TZ=', trim(this%name_), this%ni_, this%nj_, &
-         'thread id= ', omp_get_thread_num()
-#endif
    end subroutine dumpTZ
 
 

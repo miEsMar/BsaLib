@@ -30,21 +30,17 @@ module BsaLib_MZone
       integer(int32) :: LINE      = 3
    end type MZoneEnum_t
    type(MZoneEnum_t), public, parameter :: MZone_ID = MZoneEnum_t()
-   ! integer, public, parameter :: MZone_RECTANGLE = 1
-   ! integer, public, parameter :: MZone_TRIANGLE  = 2
-   ! integer, public, parameter :: MZone_LINEAR    = 3
 
 
    type, abstract, public :: MZone_t
 
-      character(len = 64) :: name_   = ''
-      type(MPolicy_t)     :: policy_
+      !> Zone's internal meshing policy
+      type(MPolicy_t) :: policy_
 
       !> Pointer to index of zone's interest modes
       integer(bsa_int_t), public :: id_im_
 
    contains
-      procedure, pass :: zoneName
       procedure, pass :: setPolicy
       procedure, pass :: policy
       procedure, pass :: setInterestModeIndexPtr
@@ -101,19 +97,6 @@ contains
    end subroutine
 
 
-   subroutine zoneName(this, name_in)
-#if (_WIN32 & __INTEL_COMPILER)
-!DIR$ ATTRIBUTES FORCEINLINE :: zoneName
-#endif
-      class(MZone_t), intent(inout) :: this
-      character(len=*), intent(in)  :: name_in
-
-      this%name_ = name_in(1:len_trim(name_in))
-   end subroutine
-
-
-
-
    subroutine setInterestModeIndexPtr(this, id)
       class(MZone_t), intent(inout)  :: this
       integer(bsa_int_t), intent(in) :: id
@@ -165,9 +148,6 @@ contains
       !       routine.
       call z%dump()
 
-      ! write common zone data
-      write(io_units_bfmdump(1)) z%name_
-
       ! policy
       write(io_units_bfmdump(1)) z%policy_%getID()
 
@@ -211,10 +191,6 @@ contains
 #undef __decl__
 
       call z%undump()  ! read zone's specific data first
-
-      ! read zone common data
-      read(io_units_bfmdump(1)) name_hdr
-      call z%zoneName(name_hdr(1:len_trim(name_hdr)))
 
       ! policy (ID)
       read(io_units_bfmdump(1)) zNp

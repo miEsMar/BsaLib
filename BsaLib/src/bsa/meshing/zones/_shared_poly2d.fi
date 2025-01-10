@@ -78,9 +78,8 @@ __mod_sub_compute subroutine __sub_name_compute(this)
 
 
    if (this%base_I_ <= MACHINE_PRECISION .or. this%base_J_ <= MACHINE_PRECISION) then
-      print '(1x, 4a)', &
-         WARNMSG, 'One sub-zone at   ', &
-            this%name_(1 : len_trim(this%name_)), '   is empty.'
+      print '(1x, 2a)', &
+         WARNMSG, 'Detected an empy rectangular zone.'
       goto 998
    endif
 
