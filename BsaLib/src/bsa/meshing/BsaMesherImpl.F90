@@ -1476,18 +1476,24 @@ contains
 # endif
 #endif
 
-
-      call print_pre_post_mesh_header('POST-MESH')
-
-
       if (do_export_base_) then
          n_threads = 1  ! NOTE: to avoid dead-locks!
          export_data_base_%nzones_ =  nzones
          export_data_base_local_   =  export_data_base_
          export_data_base_ptr_     => export_data_base_local_
       else
+#if  (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
          n_threads = 16
+#else
+         n_threads = 1
+#endif
       endif
+
+
+      call print_pre_post_mesh_header('POST-MESH')
+      print '(1x, 2a, i3, a /)', INFOMSG, &
+         'Using ', n_threads, ' thread(s) in post-meshing.'
+
 
       ! NOTE: Undump main Rect BKG Peak zone separately
       !
@@ -1517,6 +1523,7 @@ contains
       ! NOTE: no need to check for EOF. We know how many zones we have dumped.
       !
 #if  (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+
       !$omp parallel do &
       !$omp   firstprivate(export_data_base_local_, export_data_base_ptr_), &
       !$omp   firstprivate(bfm_undump_ptr), &
