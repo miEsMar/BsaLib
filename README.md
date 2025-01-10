@@ -103,8 +103,10 @@ the tooling availability.
 Currently, the code has been compiled and tested under three different OS-compiler configurations:
 
 1. `Windows OS Build 10.0.19045` - Intel Fortran Compilers (`ifort 2021.7.1-20221019_000000`, `ifx 2022.2.1-20221101`)
-2. `MacOS` - GFortran 13.2
-3. `Linux Centos Fedora 8.7` - Intel Fortran Compilers (`ifort 2021.10.0-20230609`, `ifx 2023.2.0-20230721`)
+2. `Linux Ubuntu 22.04` - GFortran 12
+3. `Linux RedHat 9.2` - GFortran 12/13.2
+4. `MacOS` - GFortran 13.2
+5. `Linux Centos Fedora 8.7` - Intel Fortran Compilers (`ifort 2021.10.0-20230609`, `ifx 2023.2.0-20230721`)
 
 
 # <a id="furhter_developments">What's missing? Further developments</a>
