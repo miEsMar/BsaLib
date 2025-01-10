@@ -11,6 +11,7 @@ cmake \
     $* \
     ${lapack_libs} \
     -D CMAKE_Fortran_COMPILER=gfortran-12 \
+    -D CMAKE_BUILD_TYPE=Debug \
     -D BUILD_SHARED_LIBS=OFF \
     -D enable-openmp=ON \
     -D enable-sym-ev-routine=OFF \
