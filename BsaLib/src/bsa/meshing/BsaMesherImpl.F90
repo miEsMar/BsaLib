@@ -33,7 +33,7 @@ submodule(BsaLib) BsaLib_MesherImpl
    integer(int32), parameter :: N_RES_PEAK_IN_BKG_ZONE_DIV_FCT_ = 4
 
 
-#define BSA_TEST_ZONES_ARRAY
+! #define BSA_TEST_ZONES_ARRAY
 
 #if (defined(BSA_TEST_ZONES_ARRAY))
    !> Save rect zones info at premesh phase
@@ -706,9 +706,9 @@ contains
                ! BUG: optimise this!!
                select case (idir)
                   case (1, 3)
-                     call ptI%move(0._bsa_real_t, sign_dir * lim - ptI%freqJ())  ! move along Y
+                     call ptI%move(0._bsa_real_t, sign_dir * lim - ptI%fj_)  ! move along Y
                   case (2, 4)
-                     call ptI%move(sign_dir * lim - ptI%freqI(), 0._bsa_real_t)  ! move along X
+                     call ptI%move(sign_dir * lim - ptI%fi_, 0._bsa_real_t)  ! move along X
                end select
 
 ! #ifdef _OPENMP
@@ -823,7 +823,7 @@ contains
                basePts(4)   = ptI
 
                ! computing base of first opening rect zone
-               init_freq_ = basePts(1)%freqI()
+               init_freq_ = basePts(1)%fi_
 
                main_refs_ = maxval(refmts(:, 1))
                bases_ch   = getEquivalentLooperIterator(N_DIRS_FULL, 'ij')
@@ -1090,8 +1090,8 @@ contains
                   pol = MPolicy_PEAK
                   tz  = MTriangZone_t()
 
-                  lim_I = basePts(idir)%freqI()
-                  lim_J = basePts(idir)%freqJ()
+                  lim_I = basePts(idir)%fi_
+                  lim_J = basePts(idir)%fj_
                   ptI   = MPoint(lim_I + tmpdelta,  lim_J)
                   ptA   = MPoint(lim_I,  lim_J - tmpdelta)
 
@@ -1127,7 +1127,7 @@ contains
                      ! Find all covered limits by initial triang-zone
                      if (ilim_init_ == 0) then
                         ilim_init_ = 1
-                        do while(abs(ptI%freqI()) > limits(ilim_init_) .and. ilim_init_ <= NLims)
+                        do while(abs(ptI%fi_) > limits(ilim_init_) .and. ilim_init_ <= NLims)
                            ilim_init_ = ilim_init_ + 1
                         enddo
                         !$omp critical
@@ -1199,7 +1199,7 @@ contains
                            iim = iim + nim + 1
                         endif
 
-                        ptI = MPoint(lim * LIM_SIGN_DIRS(idir_t2), rz%Ipt_%freqJ())
+                        ptI = MPoint(lim * LIM_SIGN_DIRS(idir_t2), rz%Ipt_%fj_)
                         call tz%setRefinements(rz%nj_, rz%nj_)
                         call tz%setPolicy(pol)
                         call tz%define(ptI, ptA, rz%Ipt_)
@@ -1227,7 +1227,7 @@ contains
                         ! south-west (north-east)
 
                         ! 1. triang leveling zone
-                        ptI = MPoint(ptB%freqI(), - lim * LIM_SIGN_DIRS(idir_t2))
+                        ptI = MPoint(ptB%fi_, - lim * LIM_SIGN_DIRS(idir_t2))
                         call tz%define(ptI, ptB, ptE)
                         call tz%compute()
 #ifndef BSA_USE_POD_DATA_CACHING
@@ -1272,8 +1272,8 @@ contains
 
                         ptI = MPoint(maxF * LIM_SIGN_DIRS(idir_t2), - maxF * LIM_SIGN_DIRS(idir_t2))
 
-                        ptA = MPoint(ptI%freqI() - (deltaI_S2_2 * LIM_SIGN_DIRS(idir_t2)), ptI%freqJ())
-                        ptB = MPoint(ptI%freqI(), ptI%freqJ() + (deltaI_S2_2 * LIM_SIGN_DIRS(idir_t2)))
+                        ptA = MPoint(ptI%fi_ - (deltaI_S2_2 * LIM_SIGN_DIRS(idir_t2)), ptI%fj_)
+                        ptB = MPoint(ptI%fi_, ptI%fj_ + (deltaI_S2_2 * LIM_SIGN_DIRS(idir_t2)))
 
                         call tz%define(ptI, ptA, ptB)
                         call tz%compute()

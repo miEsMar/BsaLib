@@ -197,11 +197,11 @@ __mod_sub_compute subroutine __sub_name_compute(this)
       ! FIRST COLUMN (along J-dir, from I to A) (CA side in Triang)
       !
 # ifdef __triang_zone__
-      base_fi(1) = this%Cpt_%freqI()
-      base_fj(1) = this%Cpt_%freqJ()
+      base_fi(1) = this%Cpt_%fi_
+      base_fj(1) = this%Cpt_%fj_
 # else
-      base_fi(1) = this%Ipt_%freqI()
-      base_fj(1) = this%Ipt_%freqJ()
+      base_fi(1) = this%Ipt_%fi_
+      base_fj(1) = this%Ipt_%fj_
 # endif
       block
          real(bsa_real_t) :: rtmp
@@ -860,11 +860,11 @@ end subroutine __sub_name_compute
 
 
 #ifdef __triang_zone__
-      fi_baseptI = this%Cpt_%freqI()
-      fj_baseptI = this%Cpt_%freqJ()
+      fi_baseptI = this%Cpt_%fi_
+      fj_baseptI = this%Cpt_%fj_
 #else
-      fi_baseptI = this%Ipt_%freqI()
-      fj_baseptI = this%Ipt_%freqJ()
+      fi_baseptI = this%Ipt_%fi_
+      fj_baseptI = this%Ipt_%fj_
 #endif
       block
          real(bsa_real_t) :: rtmp

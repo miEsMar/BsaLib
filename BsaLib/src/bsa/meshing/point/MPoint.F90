@@ -30,8 +30,6 @@ module BsaLib_MPoint
 
       procedure, pass :: setFreqs
       procedure, pass :: move
-      procedure, pass :: freqI
-      procedure, pass :: freqJ
       procedure, pass :: getDistanceI => getDistanceIfromCoord, getDistanceIfromPt
       procedure, pass :: getDistanceJ => getDistanceJfromCoord, getDistanceJfromPt
       procedure, pass :: getNewPointFromDistAndRot
@@ -107,23 +105,6 @@ contains
 
 
 
-
-
-
-   elemental function freqI(this) result(val)
-      class(MPoint_t), intent(in) :: this
-      real(bsa_real_t) :: val
-
-      val = this%fi_
-   end function
-
-
-   elemental function freqJ(this) result(val)
-      class(MPoint_t), intent(in) :: this
-      real(bsa_real_t) :: val
-
-      val = this%fj_
-   end function
 
 
 

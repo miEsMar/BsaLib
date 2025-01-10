@@ -278,8 +278,8 @@ contains
 
          if (do_force) then
 
-            fi = pt%freqI()
-            fj = pt%freqJ()
+            fi = pt%fi_
+            fj = pt%fj_
 
             if (this%rot_ == 0._bsa_real_t) then
                if (maxF_i <= fi .or. maxF_j <= fj) call bsa_Abort(invalid_max_vals)
@@ -353,8 +353,8 @@ contains
 
                if (this%rot_ == 0._bsa_real_t) then
 
-                  fi = pt%freqI() + di
-                  fj = pt%freqJ() + dj
+                  fi = pt%fi_ + di
+                  fj = pt%fj_ + dj
 
                   if (maxF_i < fi .or. maxF_j < fj) call bsa_Abort(invalid_max_vals)
 
@@ -369,8 +369,8 @@ contains
 
 
                elseif (this%rot_ == CST_PId2) then ! 1/2 * pi
-                  fi = pt%freqI() + dj
-                  fj = pt%freqJ() - di
+                  fi = pt%fi_ + dj
+                  fj = pt%fj_ - di
 
                   if (maxF_i < fi .or. maxF_j > fj) call bsa_Abort(invalid_max_vals)
 
@@ -387,8 +387,8 @@ contains
                elseif (this%rot_ == CST_PIGREC) then
                   di = - di
                   dj = - dj
-                  fi = pt%freqI() + di
-                  fj = pt%freqJ() + dj
+                  fi = pt%fi_ + di
+                  fj = pt%fj_ + dj
 
                   if (maxF_i > fi .or. maxF_j > fj) call bsa_Abort(invalid_max_vals)
 
@@ -407,8 +407,8 @@ contains
 
                ! TODO: check this
                elseif (this%rot_ == CST_PIt3d2) then ! 3/2 * pi
-                  fi = pt%freqI() - dj
-                  fj = pt%freqJ() + di
+                  fi = pt%fi_ - dj
+                  fj = pt%fj_ + di
 
                   if (maxF_i > fi .or. maxF_j < fj) call bsa_Abort(invalid_max_vals)
 
@@ -432,11 +432,11 @@ contains
                   bj = (nj - 1) * dj
 
                   if (do_exceed) then
-                     if (pt%freqI() + bi < maxF_i) then
+                     if (pt%fi_ + bi < maxF_i) then
                         bi = ni + di
                         ni = ni + 1
                      endif
-                     if (pt%freqJ() + bj < maxF_j) then
+                     if (pt%fj_ + bj < maxF_j) then
                         bj = nj * dj
                         nj = nj + 1
                      endif
@@ -448,11 +448,11 @@ contains
                   bj = (nj - 1) * di
 
                   if (do_exceed) then
-                     if (pt%freqI() + bj < maxF_i) then
+                     if (pt%fi_ + bj < maxF_i) then
                         bj = nj * di
                         nj = nj + 1
                      endif
-                     if (pt%freqJ() - bi > maxF_j) then
+                     if (pt%fj_ - bi > maxF_j) then
                         bi = ni * dj
                         ni = ni + 1
                      endif
@@ -464,11 +464,11 @@ contains
                   bj = (nj - 1) * dj
 
                   if (do_exceed) then
-                     if (pt%freqI() - bi > maxF_i) then
+                     if (pt%fi_ - bi > maxF_i) then
                         bi = ni * di
                         ni = ni + 1
                      endif
-                     if (pt%freqJ() - bj > maxF_j) then
+                     if (pt%fj_ - bj > maxF_j) then
                         bj = nj * dj
                         nj = nj + 1
                      endif
@@ -480,11 +480,11 @@ contains
                   bj = (nj - 1) * di
 
                   if (do_exceed) then
-                     if (pt%freqI() - bj > maxF_i) then
+                     if (pt%fi_ - bj > maxF_i) then
                         bj = nj * di
                         nj = nj + 1
                      endif
-                     if (pt%freqJ() + bi < maxF_j) then
+                     if (pt%fj_ + bi < maxF_j) then
                         bi = ni * dj
                         ni = ni + 1
                      endif
@@ -631,8 +631,8 @@ contains
                bjd2         = this%base_J_ / 2
             endif
 
-            this%Ipt_ = MPoint(pt%freqI() - bid2, pt%freqJ() - bjd2)
-            this%Ept_ = MPoint(pt%freqI() + bid2, pt%freqJ() + bjd2)
+            this%Ipt_ = MPoint(pt%fi_ - bid2, pt%fj_ - bjd2)
+            this%Ept_ = MPoint(pt%fi_ + bid2, pt%fj_ + bjd2)
          end block
 
       else ! loc == 'i' or 'e'
@@ -705,12 +705,12 @@ contains
       case ('i')
          this%Ipt_ = MPoint(pt)
 
-         this%Ept_ = MPoint(pt%freqI() + di, pt%freqJ() + dj)
+         this%Ept_ = MPoint(pt%fi_ + di, pt%fj_ + dj)
 
       case ('e')
          this%Ept_ = MPoint(pt)
 
-         this%Ipt_ = MPoint(pt%freqI() - di, pt%freqJ() - dj)
+         this%Ipt_ = MPoint(pt%fi_ - di, pt%fj_ - dj)
       end select
    end subroutine
 
@@ -789,7 +789,7 @@ contains
          if (known_coord == 'i') then ! we search DJ
 
             ! BUG: not always 0 when it should be
-            kd = abs(coord_val - pt%freqI())
+            kd = abs(coord_val - pt%fi_)
 
             ! BUG: forcing it to zero if below some precision
             if (kd < MACHINE_PRECISION) then
@@ -815,13 +815,13 @@ contains
                endif
             endif
 
-            fj = pt%freqJ() + cd
+            fj = pt%fj_ + cd
             Pe = MPoint(coord_val, fj)
 
 
          elseif (known_coord == 'j') then ! we search DI
 
-            kd = abs(coord_val - pt%freqJ())
+            kd = abs(coord_val - pt%fj_)
 
             ! BUG: forcing it to zero if below some precision
             if (kd < MACHINE_PRECISION) then
@@ -847,7 +847,7 @@ contains
                endif
             endif
 
-            fi = pt%freqI() + cd
+            fi = pt%fi_ + cd
             Pe = MPoint(fi, coord_val)
 
          endif ! known_coord
@@ -861,7 +861,7 @@ contains
 
          if (known_coord == 'i') then
 
-            kd = abs(coord_val - pt%freqI())
+            kd = abs(coord_val - pt%fi_)
 
             ! BUG: forcing it to zero if below some precision
             if (kd < MACHINE_PRECISION) then
@@ -887,14 +887,14 @@ contains
                endif
             endif
 
-            fj = pt%freqJ() + cd
+            fj = pt%fj_ + cd
             Pe = MPoint(coord_val, fj)
 
 
          elseif (known_coord == 'j') then
 
 
-            kd = abs(coord_val - pt%freqJ())
+            kd = abs(coord_val - pt%fj_)
 
             ! BUG: forcing it to zero if below some precision
             if (kd < MACHINE_PRECISION) then
@@ -920,7 +920,7 @@ contains
                endif
             endif
 
-            fi = pt%freqI() + cd
+            fi = pt%fi_ + cd
             Pe = MPoint(fi, coord_val)
 
          endif ! known_coord
@@ -1015,8 +1015,8 @@ contains
 
    !    call this%getIJfsteps(dfIi, dfIj, dfJi, dfJj)
 
-   !    fi = this%Ipt_%freqI()
-   !    fj = this%Ipt_%freqJ()
+   !    fi = this%Ipt_%fi_
+   !    fj = this%Ipt_%fj_
    !    base_fi = fi
    !    base_fj = fj
 
@@ -1165,7 +1165,7 @@ contains
 
       endif
 
-      pt = MPoint(this%Ipt_%freqI() + di, this%Ipt_%freqJ() + dj)
+      pt = MPoint(this%Ipt_%fi_ + di, this%Ipt_%fj_ + dj)
    end function
 
 
@@ -1186,7 +1186,7 @@ contains
       write(io_units_bfmdump(1)) MZone_ID%RECTANGLE
 
       ! init pt
-      write(io_units_bfmdump(1)) this%Ipt_%freqI(), this%Ipt_%freqJ()
+      write(io_units_bfmdump(1)) this%Ipt_%fi_, this%Ipt_%fj_
 
       write(io_units_bfmdump(1)) this%rot_
       write(io_units_bfmdump(1)) this%base_I_, this%base_J_

@@ -151,8 +151,8 @@ contains
       !      machine precision + finite floating point repr instabilities
       ! NOTE: do not call distance methods 
       !       since WE WANT TO KEEP SIGNS. 
-      dx = this%Apt_%freqI() - this%Cpt_%freqI()
-      dy = this%Apt_%freqJ() - this%Cpt_%freqJ()
+      dx = this%Apt_%fi_ - this%Cpt_%fi_
+      dy = this%Apt_%fj_ - this%Cpt_%fj_
 
       ang = atan(abs(dx) / abs(dy))
 
@@ -280,21 +280,21 @@ contains
          ! Try to deduce which one is A and B points.
          ! NOTE: this relies on the fact that we know
          !       a priori which is the corner point.
-         if (P1%freqJ() > P2%freqJ() .or. P1%freqJ() < P2%freqJ()) then ! NE, E, SE || SW, W, NW
+         if (P1%fj_ > P2%fj_ .or. P1%fj_ < P2%fj_) then ! NE, E, SE || SW, W, NW
 
             this%Apt_ = P1
             this%Bpt_ = P2
 
          else ! same FJ
 
-            if (P1%freqJ() > Cp%freqJ()) then ! w2 > 0
+            if (P1%fj_ > Cp%fj_) then ! w2 > 0
 
-               if (P1%freqI() < P2%freqI()) then
+               if (P1%fi_ < P2%fi_) then
 
                   this%Apt_ = P1
                   this%Bpt_ = P2
 
-               elseif (P2%freqI() < P1%freqI()) then
+               elseif (P2%fi_ < P1%fi_) then
 
                   this%Apt_ = P2
                   this%Bpt_ = P1
@@ -302,14 +302,14 @@ contains
                   call bsa_Abort(msg_segm)
                endif
 
-            elseif (P1%freqJ() < Cp%freqJ()) then ! w2 < 0
+            elseif (P1%fj_ < Cp%fj_) then ! w2 < 0
 
-               if (P1%freqI() > P2%freqI()) then
+               if (P1%fi_ > P2%fi_) then
 
                   this%Apt_ = P1
                   this%Bpt_ = P2
 
-               elseif (P2%freqI() > P1%freqI()) then
+               elseif (P2%fi_ > P1%fi_) then
 
                   this%Apt_ = P2
                   this%Bpt_ = P1
@@ -506,9 +506,9 @@ contains
       write(io_units_bfmdump(1)) MZone_ID%TRIANGLE
 
       ! 3 pts
-      write(io_units_bfmdump(1)) this%Cpt_%freqI(), this%Cpt_%freqJ()
-      write(io_units_bfmdump(1)) this%Apt_%freqI(), this%Apt_%freqJ()
-      write(io_units_bfmdump(1)) this%Bpt_%freqI(), this%Bpt_%freqJ()
+      write(io_units_bfmdump(1)) this%Cpt_%fi_, this%Cpt_%fj_
+      write(io_units_bfmdump(1)) this%Apt_%fi_, this%Apt_%fj_
+      write(io_units_bfmdump(1)) this%Bpt_%fi_, this%Bpt_%fj_
 
       ! NOTE: useless, since rot might reconstructed from points
       write(io_units_bfmdump(1)) this%rot_
