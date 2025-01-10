@@ -22,16 +22,15 @@ module BsaLib_MPoint
 
 
    type, public :: MPoint_t
-
       real(bsa_real_t) :: fi_ = 0._bsa_real_t
       real(bsa_real_t) :: fj_ = 0._bsa_real_t
-
    contains
-
       procedure, pass :: setFreqs
       procedure, pass :: move
-      procedure, pass :: getDistanceI => getDistanceIfromCoord, getDistanceIfromPt
-      procedure, pass :: getDistanceJ => getDistanceJfromCoord, getDistanceJfromPt
+      generic, public :: getDistanceI => getDistanceIfromCoord, getDistanceIfromPt
+      procedure, pass, private :: getDistanceIfromCoord, getDistanceIfromPt
+      generic, public :: getDistanceJ => getDistanceJfromCoord, getDistanceJfromPt
+      procedure, pass, private :: getDistanceJfromCoord, getDistanceJfromPt
       procedure, pass :: getNewPointFromDistAndRot
       procedure, pass :: scale => scaleInt, scaleReal
    end type MPoint_t
@@ -208,8 +207,6 @@ contains
       this%fi_ = this%fi_ * i
       this%fj_ = this%fj_ * i
    end subroutine scaleReal
-   
-
 
 
 
@@ -236,7 +233,7 @@ contains
 
 
 
-   
+
    pure function ScaleByInt(p, i) result(res)
       class(MPoint_t), intent(in) :: p
       integer, intent(in) :: i
@@ -282,7 +279,7 @@ contains
       real(bsa_real_t), intent(in)        :: rhs
 
       lhs = MPoint_t(rhs, rhs)
-end subroutine
+   end subroutine
 
 
 end module BsaLib_MPoint
