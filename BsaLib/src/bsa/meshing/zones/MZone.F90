@@ -21,7 +21,7 @@ module BsaLib_MZone
    use BsaLib_MPolicy,   only: MPolicy_t, MPolicy_NULL, assignment(=), operator(==)
    implicit none (type, external)
    private
-   public :: DefaultInitBaseZone, DumpZone, UndumpZone
+   public :: DumpZone, UndumpZone
 
    type, public :: MZoneEnum_t
       integer(int32) :: NULL      = 0
@@ -87,14 +87,6 @@ module BsaLib_MZone
 
 
 contains
-
-
-
-   subroutine DefaultInitBaseZone(this)
-      class(MZone_t), intent(inout) :: this
-
-      this%policy_ = MPolicy_NULL
-   end subroutine
 
 
    subroutine setInterestModeIndexPtr(this, id)

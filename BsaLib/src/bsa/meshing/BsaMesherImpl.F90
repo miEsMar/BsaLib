@@ -19,7 +19,7 @@ submodule(BsaLib) BsaLib_MesherImpl
    use BsaLib_MPolicy
    use BsaLib_IO,          only: unit_debug_, IO_BFMDUMP_BASE_UNIT, io_units_bfmdump, allocKOMsg, deallocKOMsg
    use BsaLib_MPoint,      only: MPoint_t, MPoint
-   use BsaLib_MRectZone,   only: MRectZone_t, MRectZone
+   use BsaLib_MRectZone,   only: MRectZone_t
    use BsaLib_MTriangZone, only: MTriangZone_t
    use BsaLib_Functions,   only: prefetchSVDWorkDim_  &
       , NFREQS, NNODES, NNODESL, NLIBS, NLIBSL        &
@@ -432,8 +432,8 @@ contains
       ! NOTE: we keep it in memory, since it will serve as reference
       !       point for other nearby zones correct identification.
       ti   = timing_clock()
-      bkgz = MRectZone(0._bsa_real_t)
-      ! bkgz%setRotation(0._bsa_real_t)
+      bkgz = MRectZone_t()
+      call bkgz%setRotation(0._bsa_real_t)
       if (settings%i_bisp_sym_ == BSA_SPATIAL_SYM_HALF) then
          base_i = base_i / 2._bsa_real_t
          call bkgz%define(MPoint(0._bsa_real_t, - base_i), 'i', base_i, base_j)

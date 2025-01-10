@@ -28,26 +28,11 @@ submodule(BsaLib_MRectZone) BsaLib_MRectZoneImpl
    use BsaLib_Data,     only: bsa_Abort, msh_max_zone_NPts
    use BsaLib_IO,       only: unit_debug_, io_units_bfmdump
    use BsaLib_MPoint,   only: MPoint, MPoint_t, getPointsDistance
-   use BsaLib_MZone,    only: DefaultInitBaseZone, MZone_ID, DumpZone
+   use BsaLib_MZone,    only: MZone_ID, DumpZone
    implicit none (type, external)
 
 
 contains
-
-
-   module function MRectZone_t_custom_constructor(rot, name) result(this)
-      real(bsa_real_t), intent(in), optional :: rot
-      character(len=*), intent(in), optional :: name
-      ! NOTE: compiler uses default initialisation here (built-in)
-      type(MRectZone_t) :: this
-
-      ! From Base type
-      call DefaultInitBaseZone(this)
-
-      if (present(rot))  this%rot_  = rot
-   end function
-
-
 
 
    !> Gets rect base along I-dir

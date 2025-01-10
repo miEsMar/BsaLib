@@ -77,24 +77,8 @@ module BsaLib_MRectZone
    end type MRectZone_t
 
 
-
-   interface MRectZone
-      module procedure MRectZone_t_custom_constructor
-   end interface
-   public :: MRectZone
-
-
-
    ! main interface to module procedures
    interface
-
-      module function MRectZone_t_custom_constructor(rot, name) result(this)
-         real(bsa_real_t), intent(in), optional :: rot
-         character(len=*), intent(in), optional :: name
-         ! NOTE: compiler uses default initialisation here (built-in)
-         type(MRectZone_t) :: this
-      end function
-
 
       !> Gets rect base along I-dir
       elemental module function baseI_rct(this) result(res)
