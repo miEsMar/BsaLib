@@ -162,10 +162,14 @@ program bsa
 
 
             ! TODO: introduce proper T variable
-            call bsa_computePeakFactors(m2_r_diag, m2o2_r_diag, 600._bsa_real_t, &
-               peak_pos_r_diag_g, sk_r_diag, peak_pos_r_diag_ng, peak_neg_r_diag_ng)
-            call bsa_computePeakFactors(m2_r_full, m2o2_r_full, 600._bsa_real_t, &
-               peak_pos_r_full_g, sk_r_full, peak_pos_r_full_ng, peak_neg_r_full_ng)
+            if (allocated(m2_r_diag)) then
+               call bsa_computePeakFactors(m2_r_diag, m2o2_r_diag, 600._bsa_real_t, &
+                  peak_pos_r_diag_g, sk_r_diag, peak_pos_r_diag_ng, peak_neg_r_diag_ng)
+            endif
+            if (allocated(m2_r_full)) then
+               call bsa_computePeakFactors(m2_r_full, m2o2_r_full, 600._bsa_real_t, &
+                  peak_pos_r_full_g, sk_r_full, peak_pos_r_full_ng, peak_neg_r_full_ng)
+            endif
 
 
             if (allocated(sk_r_full)) then
