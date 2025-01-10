@@ -20,18 +20,6 @@ module BsaLib_MPolicy
    private
    public :: MPolicy_create_default_set
 
-   ! enum, bind(C)
-   !    enumerator :: MPolicy_NULL  = 0
-   !    enumerator :: MPolicy_DEF   = 1
-   !    enumerator :: MPolicy_CONST = 2
-   !    enumerator :: MPolicy_PRE_PEAK_1 = 3
-   !    enumerator :: MPolicy_PRE_PEAK_2 = 4
-   !    enumerator :: MPolicy_PEAK  = 5
-   !    enumerator :: MPolicy_CREST = 6
-   !    enumerator :: MPolicy_BASIN = 7
-   !    enumerator :: MPolicy_PAD_ZONE_INTERN = 8
-   !    enumerator :: MPolicy_PAD_ZONE_EXTERN = 9
-   ! end enum
    integer(int32), public, parameter :: MPolicy_NULL  = 0
    integer(int32), public, parameter :: MPolicy_DEF   = 1
    integer(int32), public, parameter :: MPolicy_CONST = 2
@@ -51,24 +39,23 @@ module BsaLib_MPolicy
 
 
    type, public :: MPolicy_t
+      !> Policy ID
+      integer(int32), private :: id_ = MPolicy_NULL
 
-      integer(int32) :: delta_fI_fct_     = 0
-      integer(int32) :: delta_fJ_fct_     = 0
+      !> Refinement factor of delta freqs along I-local direction.
+      integer(int32) :: delta_fI_fct_ = 0
+
+      !> Refinement factor of delta freqs along J-local direction.
+      integer(int32) :: delta_fJ_fct_ = 0
+
+      !> N. of BFM interpolation levels. Deprecated!
       integer(int32) :: n_interp_bfm_lvs_ = 0
+
       type(MPolicy_Validator_t) :: bfm_pol_ = MPolicy_Validator_t()
       type(MPolicy_Validator_t) :: brm_pol_ = MPolicy_Validator_t()
-
-      integer(int32), private :: id_pol_ = 0
    contains
-
       procedure :: getID
-
-      ! generic :: assignment(=) => MPolicy_fromPol_sub, MPolicy_fromID_sub
-      ! procedure, private, pass :: MPolicy_fromID_sub, MPolicy_fromPol_sub
-      ! generic :: operator(==) => MPolicy_isID_order1, MPolicy_isID_order2
-      ! procedure, pass(pol), private :: MPolicy_isID_order1, MPolicy_isID_order2
    end type MPolicy_t
-
 
 
    !> Array of built-in policies.
@@ -131,7 +118,7 @@ contains
       pol%brm_pol_%i_fct_   = int(interp_brm_i,  kind=int32)
       pol%brm_pol_%j_fct_   = int(interp_brm_j,  kind=int32)
       pol%n_interp_bfm_lvs_ = int(nlevs,         kind=int32)
-      pol%id_pol_           = int(id,            kind=int32)
+      pol%id_               = int(id,            kind=int32)
    end function
 
 
@@ -189,7 +176,7 @@ contains
       lhs%bfm_pol_%j_fct_   = rhs_pol%bfm_pol_%j_fct_
       lhs%brm_pol_%i_fct_   = rhs_pol%brm_pol_%i_fct_
       lhs%brm_pol_%j_fct_   = rhs_pol%brm_pol_%j_fct_
-      lhs%id_pol_           = rhs_pol%id_pol_
+      lhs%id_               = rhs_pol%id_
    end subroutine MPolicy_fromPol_sub
 
 
@@ -207,7 +194,7 @@ contains
       class(MPolicy_t), intent(in) :: this
       integer(int32) :: id
 
-      id = this%id_pol_
+      id = this%id_
    end function getID
 
 
@@ -218,7 +205,7 @@ contains
       integer, intent(in)          :: id
       logical :: isID
 
-      isID = pol%id_pol_ == id
+      isID = pol%id_ == id
    end function MPolicy_isID_order1
 
 
@@ -227,7 +214,7 @@ contains
       class(MPolicy_t), intent(in) :: pol
       logical :: isID
 
-      isID = pol%id_pol_ == id
+      isID = pol%id_ == id
    end function MPolicy_isID_order2
 
 

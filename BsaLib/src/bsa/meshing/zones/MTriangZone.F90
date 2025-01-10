@@ -14,33 +14,32 @@
 !! You should have received a copy of the GNU General Public License
 !! along with BsaLib.  If not, see <https://www.gnu.org/licenses/>.
 module BsaLib_MTriangZone
-   
+
    use BsaLib_CONSTANTS,    only: bsa_real_t, bsa_int_t
    use BsaLib_MPoint,       only: MPoint_t
    use BsaLib_M2DPolygZone, only: M2DPolygZone_t
    implicit none (type, external)
    private
-   
+
 
    ! TODO: triang and rect actually share almost everything..
    type, public, extends(M2DPolygZone_t) :: MTriangZone_t
 
       !> A pt.
       !> It is the upper point when rot is 0.
-      type(MPoint_t) :: Apt_
+      type(MPoint_t) :: Apt_ = MPoint_t()
 
       !> B point.
       !> It is the point to the right when the rotation is 0.
-      type(MPoint_t) :: Bpt_
+      type(MPoint_t) :: Bpt_ = MPoint_t()
 
       !> Corner point.
       !> NOTE: we need it in case it ends being
       !>       either init/end point for meshing
-      type(MPoint_t) :: Cpt_
-
+      type(MPoint_t) :: Cpt_ = MPoint_t()
 
       !> PAB abgle
-      real(bsa_real_t) :: PABang_
+      real(bsa_real_t) :: PABang_ = 0._bsa_real_t
 
    contains
 
@@ -84,24 +83,8 @@ module BsaLib_MTriangZone
    end type
 
 
-   !> MTriangZone constructors interafce
-   interface MTriangZone
-      module procedure MTriangZone_constr_def
-   end interface
-   public :: MTriangZone
-
-
-
 
    interface
-
-      !> Default MTriangZone basic constructor
-      module function MTriangZone_constr_def(name) result(this)
-         character(len = *), intent(in), optional :: name
-         type(MTriangZone_t) :: this
-      end function
-
-
 
       !> Gets rect base along I-dir
       elemental module function baseI_triang(this) result(res)

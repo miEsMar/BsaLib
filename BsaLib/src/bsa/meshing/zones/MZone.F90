@@ -35,10 +35,10 @@ module BsaLib_MZone
    type, abstract, public :: MZone_t
 
       !> Zone's internal meshing policy
-      type(MPolicy_t) :: policy_
+      type(MPolicy_t) :: policy_ = MPolicy_t()
 
       !> Pointer to index of zone's interest modes
-      integer(bsa_int_t), public :: id_im_
+      integer(bsa_int_t), public :: id_im_ = -1_bsa_int_t
 
    contains
       procedure, pass :: setPolicy

@@ -35,17 +35,6 @@ submodule(BsaLib_MTriangZone) BsaLib_MTriangZoneImpl
 contains
 
 
-
-   !> Default MTriangZone basic constructor
-   module function MTriangZone_constr_def(name) result(this)
-      character(len = *), intent(in), optional :: name
-      type(MTriangZone_t) :: this
-
-   end function
-
-
-
-
    !> Gets rect base along I-dir
    elemental module function baseI_triang(this) result(res)
       class(MTriangZone_t), intent(in) :: this

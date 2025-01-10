@@ -20,7 +20,7 @@ submodule(BsaLib) BsaLib_MesherImpl
    use BsaLib_IO,          only: unit_debug_, IO_BFMDUMP_BASE_UNIT, io_units_bfmdump, allocKOMsg, deallocKOMsg
    use BsaLib_MPoint,      only: MPoint_t, MPoint
    use BsaLib_MRectZone,   only: MRectZone_t, MRectZone
-   use BsaLib_MTriangZone, only: MTriangZone_t, MTriangZone
+   use BsaLib_MTriangZone, only: MTriangZone_t
    use BsaLib_Functions,   only: prefetchSVDWorkDim_  &
       , NFREQS, NNODES, NNODESL, NLIBS, NLIBSL        &
       , NMODES, NMODES_EFF, MODES                     &
@@ -1088,7 +1088,7 @@ contains
 
                   ! opening triang zone
                   pol = MPolicy_PEAK
-                  tz  = MTriangZone()
+                  tz  = MTriangZone_t()
 
                   lim_I = basePts(idir)%freqI()
                   lim_J = basePts(idir)%freqJ()
