@@ -152,14 +152,22 @@ endif()
 # ******************************************************
 # LAPACK and BLAS
 # ******************************************************
-set(BLA_VENDOR "All")
 if (intel-compiler AND enable-mkl)
    message( STATUS "NOTE: Using Intel MKL libraries." )
-   # See: https://cmake.org/cmake/help/latest/module/FindBLAS.html#blas-lapack-vendors
-   set(BLA_VENDOR "Intel10_64lp")
+
+   # # This seems to not work on Windows..
+   # set(BLA_VENDOR Intel10_64lp)
+
+   # NOTE: this might be removed, and only use find_package()
+   if (WIN32)
+      target_compile_options( BsaLib INTERFACE "-Qmkl:parallel" )
+   else()
+      target_compile_options( BsaLib INTERFACE "-qmkl=parallel" )
+   endif()
+else()
+   find_package( LAPACK REQUIRED )
+   target_link_libraries( BsaLib PRIVATE ${LAPACK_LIBRARIES} )
 endif()
-find_package( LAPACK REQUIRED )
-target_link_libraries( BsaLib PRIVATE ${LAPACK_LIBRARIES} )
 
 if (enable-sym-ev-routine)
    message( STATUS "NOTE: Using 'dsyev'  method" )
