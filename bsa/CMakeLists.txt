@@ -37,8 +37,6 @@ endif()
 
 if (intel-compiler AND WIN32)
    target_compile_options( bsa PRIVATE -w )
-elseif (GNU)
-   target_compile_options( bsa <$<CONFIG:DEBUG>:-fbacktrace> )
 endif()
 
 

@@ -146,6 +146,7 @@ if (enable-heap-arrays)
    endif()
 endif()
 
+
 if (intel-compiler)
    add_compile_options( $<$<AND:$<CONFIG:RELEASE>,$<COMPILE_LANGUAGE:Fortran>>:-O3> )
    if (WIN32)
@@ -154,9 +155,10 @@ if (intel-compiler)
       add_compile_options( $<$<AND:$<CONFIG:DEBUG>,$<COMPILE_LANGUAGE:Fortran>>:/traceback> )
    endif()
 else()
-   add_compile_options(
-      $<$<AND:$<CONFIG:RELEASE>,$<COMPILE_LANGUAGE:Fortran>>:-Ofast>
-   )
+   add_compile_options( $<$<AND:$<CONFIG:RELEASE>,$<COMPILE_LANGUAGE:Fortran>>:-Ofast> )
+   if (GNU)
+      add_compile_options( $<$<AND:$<CONFIG:DEBUG>,$<COMPILE_LANGUAGE:Fortran>>:-ftraceback> )
+   endif()
 endif()
 
 
