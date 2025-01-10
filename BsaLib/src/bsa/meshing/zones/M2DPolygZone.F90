@@ -175,7 +175,9 @@ contains
       real(bsa_real_t), intent(out) :: dfJi, dfJj
 
       real(bsa_real_t) :: ang, c, s
+#ifndef __GFORTRAN__
       real(bsa_real_t), intrinsic :: sin, cos
+#endif
 
       if (this%rot_ < CST_PId2) then ! FIRST quadrant
 
