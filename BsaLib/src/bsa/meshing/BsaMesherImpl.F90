@@ -1522,15 +1522,18 @@ contains
 # ifndef BSA_USE_POD_DATA_CACHING
       !$omp   private(bfm_undump), &
 # endif
-      !$omp   shared(struct_data, wd, settings, do_export_base_                &
-      !$omp          , NFREQS, NNODES, NNODESL, NLIBS, NLIBSL, NMODES_EFF      &
-      !$omp          , NPSDEL, NTCOMPS, NDIRS, TCOMPS, DIRS, NMODES, MODES     &
-      !$omp          , MSHR_SVD_INFO, MSHR_SVD_LWORK, MSHR_SVD_WORK            &
-      !$omp          , bkg_peakw_, izone, MZone_ID, msh_NZones, m3mr_msh_ptr_  &
-      !$omp          , msh_ZoneLimsInterestModes, do_validate_deltas_          &
-      !$omp          , msh_bfmpts_post_, msh_brmpts_post_, io_units_bfmdump    &
-      !$omp          , is_visual_, is_brn_export_, visual_idx_                 &
-      !$omp          , dimM_bisp_, getBFM_msh, getBRM_msh, write_brm_fptr_),   &
+      !$omp   shared(struct_data, wd, settings, do_export_base_   &
+#ifndef __GFORTRAN__
+      !$omp          , MZone_ID                                   &
+#endif
+      !$omp          , NFREQS, NNODES, NNODESL, NLIBS, NLIBSL, NMODES_EFF     &
+      !$omp          , NPSDEL, NTCOMPS, NDIRS, TCOMPS, DIRS, NMODES, MODES    &
+      !$omp          , MSHR_SVD_INFO, MSHR_SVD_LWORK, MSHR_SVD_WORK           &
+      !$omp          , bkg_peakw_, izone, msh_NZones, m3mr_msh_ptr_           &
+      !$omp          , msh_ZoneLimsInterestModes, do_validate_deltas_         &
+      !$omp          , msh_bfmpts_post_, msh_brmpts_post_, io_units_bfmdump   &
+      !$omp          , is_visual_, is_brn_export_, visual_idx_                &
+      !$omp          , dimM_bisp_, getBFM_msh, getBRM_msh, write_brm_fptr_),  &
       !$omp   num_threads(n_threads)
 #endif
       do izone_ = 2, nzones
