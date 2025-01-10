@@ -1445,7 +1445,7 @@ contains
 #ifndef BSA_USE_POD_DATA_CACHING
       real(bsa_real_t), allocatable, target :: bfm_undump(:, :)
 # ifndef _OPENMP
-      character(len = 128)          :: emsg
+      character(len = 128) :: emsg
 # endif
 #endif
 
