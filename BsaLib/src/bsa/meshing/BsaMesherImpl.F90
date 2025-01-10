@@ -1483,7 +1483,7 @@ contains
          export_data_base_ptr_     => export_data_base_local_
       else
 #if  (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
-         n_threads = 16
+         n_threads = max_num_omp_threads_
 #else
          n_threads = 1
 #endif
