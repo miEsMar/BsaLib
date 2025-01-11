@@ -27,32 +27,7 @@
 #endif
 
 
-#ifdef _OPENMP
-# define __export_POD_trunc_id__  omp_get_thread_num()+1
-#else
-# define __export_POD_trunc_id__  1
-#endif
-
-#ifdef BSA_USE_POD_DATA_CACHING
-# define __bfm_dump__
-#else
-# define __bfm_dump__  ,bfm
-#endif
-
-#ifdef BSA_USE_OPTIMISED_OMP
-# define __compute_bfm_inout__ intent(inout),
-#else
-# define __compute_bfm_inout__
-# define __dump_needs_sync
-#endif
-
-
-! #define __zone_layout_validation__
-#if defined(BSA_DEBUG) && !(defined(__zone_layout_validation__))
-#  define __zone_layout_validation__
-#endif
-
-
+#include "meshing.h"
 
 
 !> Zone computation (pre-meshing phase).
@@ -122,7 +97,6 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 
       real(bsa_real_t), allocatable :: intg(:)
 
-! #   define __local_debug_write__
 #   ifdef __local_debug_write__
       integer(int32), save  :: iun = 430000
       real(bsa_real_t), allocatable :: fi_v_save_(:), fj_v_save_(:)
@@ -135,7 +109,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 # ifdef __triang_zone__
       integer(int32) :: Np_m1, Nj_m1
       real(bsa_real_t)       :: df_CA, df_CST
-#  ifdef __zone_layout_validation__
+#  ifdef __compute_validate_zone_layout
       type(MPoint_t) :: pt
 #  endif
 
@@ -283,7 +257,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
       fi(1) = fi(1) + dfJi
       fj(1) = fj(1) + dfJj
 
-#  ifdef __zone_layout_validation__
+#  ifdef __compute_validate_zone_layout
       pt = MPoint_t(fi(1), fj(1))
       if (.not. pt == this%Apt_) &
          call bsa_Abort('First end point does not match triang A point. Aborting.')
@@ -308,7 +282,6 @@ __mod_sub_compute subroutine __sub_name_compute(this &
       if (do_export_POD_info_) then
          do_export_POD_trunc_(__export_POD_trunc_id__) = .false.
       endif
-#  undef __export_POD_trunc_id__
 # endif
 
 
@@ -384,7 +357,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
       base_fj(1) = base_fj(1) + dfIj
 
 
-#  ifdef __zone_layout_validation__
+#  ifdef __compute_validate_zone_layout
       pt = MPoint_t(base_fi(1), base_fj(1))
       if (.not. pt == this%Bpt_) &
          call bsa_Abort('End point does not match B triang point. Aborting.')
@@ -398,7 +371,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 # endif ! __triang_zone__   defined
 
 
-# ifdef __zone_layout_validation__
+# ifdef __compute_validate_zone_layout
       if (i_bfm /= zNp) then
          print *, 'i_bfm , zNp  =  ', i_bfm, zNp
          call bsa_Abort('"i_bfm" does not equal tot N of zone''s points.')
@@ -478,22 +451,12 @@ end subroutine __sub_name_compute
 
 
 
-#if (defined(BSA_USE_POD_DATA_CACHING)) || (defined(_OPENMP))
-# define __new_interp_proc__
-#endif
-
-
-#if (defined(BSA_USE_POD_DATA_CACHING)) || (!defined(_BSA_M3MF_ONLY_PREMESH))
-# define __update_m3mf__
-#endif
-
-
    subroutine __sub_name_interp(this, bfm_undump_ptr, pdata)
       !! Implementation of HTPC interpolation method for a rect/triang zone,
       !! including MultiLevel-Refinement for BFM data.
       use BsaLib_Data, only: &
          dimM_bisp_, getBFM_msh, getBRM_msh        &
-#ifdef __update_m3mf__
+#ifdef __interp_updates_m3mf
          , m3mf_msh_ptr_            &
 #endif
          , m3mr_msh_ptr_, settings  &
@@ -564,7 +527,7 @@ end subroutine __sub_name_compute
       real(bsa_real_t) :: fi_baseptI, fj_baseptI
       real(bsa_real_t), target  :: fi(1), fj(1), fi_baseptJ(1), fj_baseptJ(1)
       real(bsa_real_t), pointer :: fi_ptr(:) => null(), fj_ptr(:) => null()
-#ifdef __new_interp_proc__
+#ifdef __interp_use_new_proc
       real(bsa_real_t), allocatable :: fi_v_(:), fj_v_(:)
 # ifdef BSA_USE_POD_DATA_CACHING
       real(bsa_real_t), allocatable, target :: bfm_undump(:, :)
@@ -573,7 +536,7 @@ end subroutine __sub_name_compute
       integer(int32) :: i_bfm_offs
 #   endif
 # endif
-#endif ! __new_interp_proc__
+#endif ! __interp_use_new_proc
 
       real(bsa_real_t), allocatable :: bfm_new_left(:, :), bfm_new_right(:, :)
       real(bsa_real_t), allocatable :: bfm_interp(:, :)
@@ -581,7 +544,7 @@ end subroutine __sub_name_compute
       real(bsa_real_t) :: dfJtail, dfJhead, dfIcurr, dfIprev
       real(bsa_real_t) :: bfmtail(dimM_bisp_, 1), bfmhead(dimM_bisp_, 1)
 
-#ifdef __update_m3mf__
+#ifdef __interp_updates_m3mf
       real(bsa_real_t) :: intg_bfm(dimM_bisp_)
       real(bsa_real_t) :: vtx_infl_bfm, brd_infl_bfm, ctr_infl_bfm
 
@@ -598,10 +561,10 @@ end subroutine __sub_name_compute
 #   define __brd_infl_t_bfm  brd_infl_bfm
 #   define __vtx_infl_t_bfm  vtx_infl_bfm
 # endif
-#endif  ! __update_m3mf__
+#endif  ! __interp_updates_m3mf
 
 
-! #if (defined(BSA_USE_POD_DATA_CACHING)) || (defined(__update_m3mf__))
+! #if (defined(BSA_USE_POD_DATA_CACHING)) || (defined(__interp_updates_m3mf))
 ! #  define __local_debug_write__
 ! #endif
 
@@ -680,7 +643,7 @@ end subroutine __sub_name_compute
       dfJ_brm_interp_ = dfJ_bfm_ref_ / interp_fact
 
 
-# ifdef __update_m3mf__
+# ifdef __interp_updates_m3mf
       ! influence areas for BRM integration
       dw_cst       = dfI_bfm_ref_ * CST_PIt2
       ctr_infl_bfm = dw_cst * dw_cst
@@ -831,7 +794,7 @@ end subroutine __sub_name_compute
       dfJ_brm_interp_ = dfJ_bfm_ref_ / pol%brm_pol_%j_fct_
 
 
-# ifdef __update_m3mf__
+# ifdef __interp_updates_m3mf
       ! compute BFM (refined) influence areas for integration
       dwI = dfI_bfm_ref_ * CST_PIt2
       dwJ = dfJ_bfm_ref_ * CST_PIt2
@@ -927,7 +890,7 @@ end subroutine __sub_name_compute
 
       bfm_undump_Local_ptr => bfm_undump_ptr
 
-#ifdef __new_interp_proc__
+#ifdef __interp_use_new_proc
 # ifdef BSA_USE_POD_DATA_CACHING
 
       ! *********************************************************
@@ -996,7 +959,7 @@ end subroutine __sub_name_compute
       allocate(fj_v_(nPtsPost), stat=ist)
       if (ist /= 0) call bsa_Abort("Error allocating ""fj"" in interpolating RZ.")
       fj_v_ = 0._bsa_real_t
-#endif  ! __new_interp_proc__
+#endif  ! __interp_use_new_proc
 
 
 #ifdef __local_debug_write__
@@ -1054,7 +1017,7 @@ end subroutine __sub_name_compute
       i_bfm              = 1
 #endif
       bfmtail            = bfm_undump_Local_ptr(:, 1:1)
-#ifdef __update_m3mf__
+#ifdef __interp_updates_m3mf
       intg_bfm           = bfmtail(:, 1) * __vtx_infl_r_bfm
 #endif
       bfm_new_left(:, 1) = bfmtail(:, 1)
@@ -1084,7 +1047,7 @@ end subroutine __sub_name_compute
 #else
              call getBFM_msh(bfmhead, fi_baseptJ, fj_baseptJ)
 #endif
-#ifdef __update_m3mf__
+#ifdef __interp_updates_m3mf
             intg_bfm   = intg_bfm + bfmhead(:, 1) * __brd_infl_r_bfm
 #endif
 
@@ -1122,7 +1085,7 @@ end subroutine __sub_name_compute
             fj_v_save_(ifj) = fj_baseptJ(1)
 #endif
 
-#ifdef __zone_layout_validation__
+#ifdef __compute_validate_zone_layout
             if (abs(fi(1) - fi_baseptJ(1)) > MACHINE_PRECISION .or. &
                abs(fj(1) - fj_baseptJ(1)) > MACHINE_PRECISION) &
                   call bsa_Abort(&
@@ -1154,12 +1117,12 @@ end subroutine __sub_name_compute
 #else
          bfmhead(:, 1) = bfm_undump_Local_ptr(:, pJhead) ! OK because we stored it NJ majour.
 #endif
-#ifdef __update_m3mf__
+#ifdef __interp_updates_m3mf
          intg_bfm      = intg_bfm + bfmhead(:, 1) * __brd_infl_r_bfm
 #endif
 
 
-#ifdef __zone_layout_validation__
+#ifdef __compute_validate_zone_layout
          if (n_pts_bfm_ref_j_ > 0) then 
             if (abs((fi_baseptI + (dfJi_bfm_lv0_*(pJhead-1))) - (fi_baseptJ(1) + dfJi_bfm_ref_)) > MACHINE_PRECISION .or. &
                   abs((fj_baseptI + (dfJj_bfm_lv0_*(pJhead-1))) - (fj_baseptJ(1) + dfJj_bfm_ref_)) > MACHINE_PRECISION) &
@@ -1198,7 +1161,7 @@ end subroutine __sub_name_compute
          fi(1) = fi(1) + dfJi_brm_interp
          fj(1) = fj(1) + dfJj_brm_interp
 
-#ifdef __zone_layout_validation__
+#ifdef __compute_validate_zone_layout
          fi_baseptJ(1) = fi_baseptJ(1) + dfJi_bfm_ref_
          fj_baseptJ(1) = fj_baseptJ(1) + dfJj_bfm_ref_
          if (abs(fi_baseptJ(1) - fi(1)) > MACHINE_PRECISION .or. &
@@ -1236,7 +1199,7 @@ end subroutine __sub_name_compute
 
       ! NOTE: removing excess contribution for last HEAD (VERTEX)
       intg     = intg - brm(:, i_brm) * __vtx_infl_t
-#ifdef __update_m3mf__
+#ifdef __interp_updates_m3mf
       intg_bfm = intg_bfm - bfmtail(:, 1) * __vtx_infl_t_bfm
 #endif
 
@@ -1286,7 +1249,7 @@ end subroutine __sub_name_compute
 #else
              call getBFM_msh(bfmtail, fi, fj)
 #endif
-#ifdef __update_m3mf__
+#ifdef __interp_updates_m3mf
             intg_bfm = intg_bfm + bfmtail(:, 1) * __brd_infl_r_bfm
 #endif
             bfm_new_right(:, 1) = bfmtail(:, 1)
@@ -1325,7 +1288,7 @@ end subroutine __sub_name_compute
 #else
                    call getBFM_msh(bfmhead, fi_baseptJ, fj_baseptJ)
 #endif
-#ifdef __update_m3mf__
+#ifdef __interp_updates_m3mf
                   intg_bfm = intg_bfm + bfmhead(:, 1) * __ctr_infl_r_bfm
 #endif
 
@@ -1364,7 +1327,7 @@ end subroutine __sub_name_compute
                   fi(1) = fi(1) + dfJi_brm_interp
                   fj(1) = fj(1) + dfJj_brm_interp
 
-#if defined(__triang_zone__) && defined(__zone_layout_validation__)
+#if defined(__triang_zone__) && defined(__compute_validate_zone_layout)
                   if (abs(fi(1) - fi_baseptJ(1)) > MACHINE_PRECISION .or. &
                      abs(fj(1) - fj_baseptJ(1)) > MACHINE_PRECISION) &
                         call bsa_Abort(&
@@ -1401,7 +1364,7 @@ end subroutine __sub_name_compute
 #else
                 call getBFM_msh(bfmhead, fi_baseptJ, fj_baseptJ)
 #endif
-#ifdef __update_m3mf__
+#ifdef __interp_updates_m3mf
                intg_bfm = intg_bfm + bfmhead(:, 1) * __vtx_infl_r_bfm
 #endif
 
@@ -1474,7 +1437,7 @@ end subroutine __sub_name_compute
 # else
                 call getBFM_msh(bfmhead, fi_baseptJ, fj_baseptJ)
 # endif
-# ifdef __update_m3mf__
+# ifdef __interp_updates_m3mf
                intg_bfm = intg_bfm + bfmhead(:, 1) * __ctr_infl_r_bfm
 # endif
 
@@ -1542,7 +1505,7 @@ end subroutine __sub_name_compute
             !       there, it is a VERTEX point.
             !       However, it's the very last element in brm, we can remove it after.
             intg     = intg - brm(:, i_brm_shift) * __brd_infl_t
-#ifdef __update_m3mf__
+#ifdef __interp_updates_m3mf
             intg_bfm = intg_bfm - bfmtail(:, 1) * __brd_infl_t_bfm
 #endif
 
@@ -1731,7 +1694,7 @@ end subroutine __sub_name_compute
          i_bfm_old     = i_bfm_old + 1
          bfmtail(:, 1) = bfm_undump_Local_ptr(:, i_bfm_old)
 #endif
-#ifdef __update_m3mf__
+#ifdef __interp_updates_m3mf
          intg_bfm            = intg_bfm + bfmtail(:, 1) * __brd_infl_r_bfm
 #endif
          bfm_new_right(:, 1) = bfmtail(:, 1)
@@ -1769,7 +1732,7 @@ end subroutine __sub_name_compute
 #else
                 call getBFM_msh(bfmhead, fi_baseptJ, fj_baseptJ)
 #endif
-#ifdef __update_m3mf__
+#ifdef __interp_updates_m3mf
                intg_bfm = intg_bfm + bfmhead(:, 1) * __ctr_infl_r_bfm
 #endif
 
@@ -1840,7 +1803,7 @@ end subroutine __sub_name_compute
             i_bfm_old     = i_bfm_old + 1
             bfmhead(:, 1) = bfm_undump_Local_ptr(:, i_bfm_old)
 #endif
-#ifdef __update_m3mf__
+#ifdef __interp_updates_m3mf
             intg_bfm      = intg_bfm + bfmhead(:, 1) * ctr_infl_bfm
 #endif
 
@@ -1907,7 +1870,7 @@ end subroutine __sub_name_compute
          !       there, it is a VERTEX point.
          !       However, it's the very last element in brm, we can remove it after.
          intg     = intg - brm(:, i_brm_shift) * __brd_infl_t
-#ifdef __update_m3mf__
+#ifdef __interp_updates_m3mf
          intg_bfm = intg_bfm - bfmtail(:, 1) * __brd_infl_t_bfm
 #endif
 
@@ -2055,7 +2018,7 @@ end subroutine __sub_name_compute
 
 
 #ifndef BSA_USE_OPTIMISED_OMP
-# if defined(__triang_zone__) && defined(__zone_layout_validation__)
+# if defined(__triang_zone__) && defined(__compute_validate_zone_layout)
          ! BUG: check this condition
          if (njNew_picurr /= ((njOld - 1) * (nipJ + 1) + 1)) &
             call bsa_Abort("""njNew_picurr"" does not match computed value.")
@@ -2092,7 +2055,7 @@ end subroutine __sub_name_compute
       enddo ! pIcurr = 2, this%ni_
 
 
-#ifdef __zone_layout_validation__
+#ifdef __compute_validate_zone_layout
       if (i_brm /= nPtsPost) then
 # ifndef __triang_zone__
          print *, ' policy BFM-MLV factors      =  ', pol%bfm_pol_%i_fct_, pol%bfm_pol_%j_fct_
@@ -2101,7 +2064,7 @@ end subroutine __sub_name_compute
          print *, ' ibrm, nPtsPost  = ', i_brm, nPtsPost
          call bsa_Abort('"i_brm" does not equal rect zone''s n. of (interpolated) points.')
       endif
-#endif ! __zone_layout_validation__
+#endif ! __compute_validate_zone_layout
 
 
       deallocate(bfm_new_right)
@@ -2112,11 +2075,11 @@ end subroutine __sub_name_compute
       ! removing overestimation for B point
       ! NOTE: should be stored at very last index!!
       intg = intg - brm(:, i_brm) * __vtx_infl_t
-# ifdef __update_m3mf__
+# ifdef __interp_updates_m3mf
       intg_bfm = intg_bfm - bfmtail(:, 1) * __vtx_infl_t_bfm
 # endif
 #else
-# ifdef __update_m3mf__
+# ifdef __interp_updates_m3mf
       pIcurr   = size(bfm_new_left, dim=2)
       intg_bfm = intg_bfm - bfm_new_left(:, 1) * __vtx_infl_r_bfm          ! removing overestimation for B point
       ! removing overestimation for last border points
@@ -2133,7 +2096,7 @@ end subroutine __sub_name_compute
 
 
       !$omp critical
-#ifdef __update_m3mf__
+#ifdef __interp_updates_m3mf
       m3mf_msh_ptr_ = m3mf_msh_ptr_ + (intg_bfm * settings%i_bisp_sym_) ! update main BFM integral
 #endif
       m3mr_msh_ptr_ = m3mr_msh_ptr_ + (intg     * settings%i_bisp_sym_) ! update main BRM integral
@@ -2176,7 +2139,7 @@ end subroutine __sub_name_compute
 #ifndef __triang_zone__
       if (allocated(inter_modes_)) deallocate(inter_modes_)
 #endif
-#ifdef __new_interp_proc__
+#ifdef __interp_use_new_proc
       if (allocated(fi_v_))   deallocate(fi_v_)
       if (allocated(fj_v_))   deallocate(fj_v_)
 # ifdef BSA_USE_POD_DATA_CACHING

@@ -33,19 +33,7 @@ submodule(BsaLib) BsaLib_MesherImpl
    integer(int32), parameter :: N_RES_PEAK_IN_BKG_ZONE_DIV_FCT_ = 4
 
 
-#ifdef BSA_USE_OPTIMISED_OMP
-# define BSA_USES_ZONES_ARRAY
-# ifndef BSA_USE_POD_DATA_CACHING
-#   define __postmesh_use_per_thread_bfmundump
-# endif
-#else
-# ifndef BSA_USE_POD_DATA_CACHING
-#  define __print_premesh_update
-#  ifndef _OPENMP
-#    define __post_mesh_uses_global_bfmundump
-#  endif
-# endif
-#endif
+#include "meshing.h"
 
 
 #if (defined(BSA_USES_ZONES_ARRAY))
@@ -86,13 +74,10 @@ contains
 #endif
 
 #ifdef _OPENMP
-# define __export_POD_trunc_id__  omp_get_thread_num()+1
       max_num_omp_threads_ = omp_get_max_threads()
       if (0_bsa_int_t == max_num_omp_threads_) then
          call bsa_Abort("omp_get_max_threads()  has returned 0.")
       endif
-#else
-# define __export_POD_trunc_id__  1
 #endif
 
       if (0_int32 /= openBFMDumpFiles_()) then
