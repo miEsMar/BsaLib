@@ -18,7 +18,7 @@ module BsaLib_Utility
    use BsaLib_CONSTANTS, only: INFOMSG, ERRMSG, MSGCONT, WARNMSG, NOTEMSG, int32
    implicit none (type, external)
    public
-   
+
 contains
 
 
@@ -44,7 +44,7 @@ contains
 #ifdef _WIN32
       cmd = 'mkdir '//dirname(3:12)  ! BUG: fix this!!
 #else
-      cmd = 'mkdir '//dirname
+      cmd = 'mkdir -p '//dirname
 #endif
       ierr = 0
       call execute_command_line(cmd, .true., ierr)
