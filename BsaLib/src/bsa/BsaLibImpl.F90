@@ -289,7 +289,6 @@ contains
 #if (defined(_OPENMP)) && (defined(BSA_DEBUG))
          print '(1x, 2a)', NOTEMSG, 'This version has been compiled with OpenMP support.'
 #endif
-         print *
 
 
          call setBsaFunctionLocalVars()   ! NOTE: reset internal state, if something has been changed

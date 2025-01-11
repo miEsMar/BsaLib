@@ -29,6 +29,7 @@ submodule(BsaLib_MTriangZone) BsaLib_MTriangZoneImpl
    use BsaLib_MZone,     only: MZone_ID, DumpZone
    use BsaLib_Data,      only: bsa_Abort, msh_max_zone_NPts
    use BsaLib_IO,        only: io_units_bfmdump
+   !$ use omp_lib,       only: omp_get_thread_num
    implicit none (type, external)
 
 
@@ -472,8 +473,18 @@ contains
 
 
    !> Computes a completely defined triang zone
-   module subroutine compute(this)
+   module subroutine compute(this &
+#ifdef BSA_USE_OPTIMISED_OMP
+         & , bfm &
+#endif
+   & )
       class(MTriangZone_t), intent(inout) :: this
+#ifdef BSA_USE_OPTIMISED_OMP
+         real(bsa_real_t), allocatable, intent(inout) :: bfm(:, :)
+# define __bfm ,bfm
+#else
+# define __bfm
+#endif
 
       real(bsa_real_t) :: df_CA, df_CB
 
@@ -489,7 +500,7 @@ contains
       !      when they should. So, no direct comparison
       !      instead use MACHINE PRECISION
       if (abs(df_CA - df_CB) <= MACHINE_PRECISION) then
-         call compute_TZ_iso_(this)
+         call compute_TZ_iso_(this __bfm)
       else
          call bsa_Abort('Triangle must be "isosceles". Aborting.')
       endif
@@ -499,23 +510,24 @@ contains
 
 
 
+#include "iundump.h"
+
+
    module subroutine dumpTZ(this)
       !! Dumps a triang zone data for later reconstruction
       class(MTriangZone_t), intent(in) :: this
 
-      write(io_units_bfmdump(1)) MZone_ID%TRIANGLE
+      write(io_units_bfmdump(__iun_dump)) MZone_ID%TRIANGLE
 
       ! 3 pts
-      write(io_units_bfmdump(1)) this%Cpt_%fi_, this%Cpt_%fj_
-      write(io_units_bfmdump(1)) this%Apt_%fi_, this%Apt_%fj_
-      write(io_units_bfmdump(1)) this%Bpt_%fi_, this%Bpt_%fj_
+      write(io_units_bfmdump(__iun_dump)) this%Cpt_%fi_, this%Cpt_%fj_
+      write(io_units_bfmdump(__iun_dump)) this%Apt_%fi_, this%Apt_%fj_
+      write(io_units_bfmdump(__iun_dump)) this%Bpt_%fi_, this%Bpt_%fj_
 
       ! NOTE: useless, since rot might reconstructed from points
-      write(io_units_bfmdump(1)) this%rot_
-      write(io_units_bfmdump(1)) this%ni_, this%nj_
+      write(io_units_bfmdump(__iun_dump)) this%rot_
+      write(io_units_bfmdump(__iun_dump)) this%ni_, this%nj_
    end subroutine dumpTZ
-
-
 
 
    module subroutine undumpTZ(this)
@@ -524,18 +536,18 @@ contains
       real(bsa_real_t) :: rval1, rval2
 
       ! 3 pts
-      read(io_units_bfmdump(1)) rval1, rval2
+      read(io_units_bfmdump(__iun_dump)) rval1, rval2
       call this%Cpt_%setFreqs(rval1, rval2)
 
-      read(io_units_bfmdump(1)) rval1, rval2
+      read(io_units_bfmdump(__iun_dump)) rval1, rval2
       call this%Apt_%setFreqs(rval1, rval2)
 
-      read(io_units_bfmdump(1)) rval1, rval2
+      read(io_units_bfmdump(__iun_dump)) rval1, rval2
       call this%Bpt_%setFreqs(rval1, rval2)
 
 
-      read(io_units_bfmdump(1)) this%rot_
-      read(io_units_bfmdump(1)) this%ni_, this%nj_
+      read(io_units_bfmdump(__iun_dump)) this%rot_
+      read(io_units_bfmdump(__iun_dump)) this%ni_, this%nj_
    end subroutine undumpTZ
 
 

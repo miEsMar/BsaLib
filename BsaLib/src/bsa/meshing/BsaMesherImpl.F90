@@ -27,15 +27,28 @@ submodule(BsaLib) BsaLib_MesherImpl
       , NPSDEL, NTCOMPS, NDIRS, TCOMPS, DIRS          &
       , MSHR_SVD_INFO, MSHR_SVD_LWORK, MSHR_SVD_WORK
    implicit none (type, external)
-   character(len = *), parameter :: bfm_dump_file_name_ = 'dumpfile'
+   character(len = *), parameter :: bfm_dump_file_name_base_ = 'dumpfile'
 
    ! BUG: let the user choose how many modes it allows to be covered max.
    integer(int32), parameter :: N_RES_PEAK_IN_BKG_ZONE_DIV_FCT_ = 4
 
 
-! #define BSA_TEST_ZONES_ARRAY
+#ifdef BSA_USE_OPTIMISED_OMP
+# define BSA_USES_ZONES_ARRAY
+# ifndef BSA_USE_POD_DATA_CACHING
+#   define __postmesh_use_per_thread_bfmundump
+# endif
+#else
+# ifndef BSA_USE_POD_DATA_CACHING
+#  define __print_premesh_update
+#  ifndef _OPENMP
+#    define __post_mesh_uses_global_bfmundump
+#  endif
+# endif
+#endif
 
-#if (defined(BSA_TEST_ZONES_ARRAY))
+
+#if (defined(BSA_USES_ZONES_ARRAY))
    !> Save rect zones info at premesh phase
    !> BUG: works with rect zones only. Allow polymorphism!
    type(MRectZone_t), allocatable, target :: meshing_zones__(:)
@@ -54,8 +67,6 @@ submodule(BsaLib) BsaLib_MesherImpl
 contains
 
 
-
-
    module subroutine mainMesher_(m3mf_msh, m3mr_msh)
       use BsaLib_Functions, only: cleanSVDWorkInfo_
       real(bsa_real_t), target, allocatable :: m3mf_msh(:), m3mr_msh(:)
@@ -67,17 +78,33 @@ contains
       write(unit_debug_, *) ' @BsaMesherImpl::mainMesher_() : Init BSA-Mesher main...'
 #endif
 
+#ifdef BSA_USE_OPTIMISED_OMP
+      print '(1x, 2a/)', NOTEMSG, 'Using version with optimal OpenMP integration.'
+#endif
 #ifdef BSA_USE_POD_DATA_CACHING
       print '(1x, 2a/)', NOTEMSG, 'Using version with POD caching.'
 #endif
 
-      if (0_int32 /= openBFMDumpFiles_()) call bsa_Abort("Failed to open BFM dump file(s).")
+#ifdef _OPENMP
+# define __export_POD_trunc_id__  omp_get_thread_num()+1
+      max_num_omp_threads_ = omp_get_max_threads()
+      if (0_bsa_int_t == max_num_omp_threads_) then
+         call bsa_Abort("omp_get_max_threads()  has returned 0.")
+      endif
+#else
+# define __export_POD_trunc_id__  1
+#endif
+
+      if (0_int32 /= openBFMDumpFiles_()) then
+         call bsa_Abort("Failed to open BFM dump file(s).")
+      endif
 
       lflag = settings%i_only_diag_ == 0 .and. settings%i_use_svd_ == 1
-      if (lflag) call prefetchSVDWorkDim_()
+      if (lflag) then
+         call prefetchSVDWorkDim_()
+      endif
 
       if (.not.is_visual_) then
-
          msh_bfmpts_pre_  = 0
          msh_bfmpts_post_ = 0
          msh_brmpts_post_ = 0
@@ -90,31 +117,25 @@ contains
          call PreMesh()
       endif
 
-#ifndef BSA_USE_POD_DATA_CACHING
-      if ((lflag .and. test_no_bfm_mlr_) .or. is_only_premesh_) call cleanSVDWorkInfo_()
-#endif
-
-
-#if (defined(BSA_TEST_ZONES_ARRAY))
-      call dump_zones_(meshing_zones__)
-      goto 998
-#endif
 
       if (is_only_premesh_) then
          print '(1x, 2a)', &
-            NOTEMSG, 'Skipping Post-meshing phase!'
+            NOTEMSG, 'Only Pre-meshing requested. Skipping Post-meshing phase!'
          goto 998
       endif
 
 
-      ! ! post-meshing -> BRM
+      ! post-meshing -> BRM
       allocate(m3mr_msh(dimM_bisp_), stat=istat, errmsg=emsg)
       if (istat /= 0) call allocKOMsg('m3mr_msh', istat, emsg)
       m3mr_msh = 0._bsa_real_t
       m3mr_msh_ptr_ => m3mr_msh
       call Mesh()
 
+
       ! NOTE: Dump modal info if needed, before rewinding..
+      998 continue
+      call cleanSVDWorkInfo_()
       if (.not. is_visual_) then
 
          write(io_units_bfmdump(1)) settings%i_dump_modal_
@@ -139,14 +160,13 @@ contains
 
 
       ! cleanup
-      998 if (lflag .and. .not. test_no_bfm_mlr_) call cleanSVDWorkInfo_()
+      if (lflag .and. .not. test_no_bfm_mlr_) call cleanSVDWorkInfo_()
       do istat = 1, size(io_units_bfmdump)
          inquire(unit=io_units_bfmdump(istat), opened = lflag)
          if (lflag) close(io_units_bfmdump(istat))
       enddo
 
 
-      ! if (.not. is_visual_) then
          print *
          print '(1x, 2a)', &
             INFOMSG, 'Resume of total n. of points in meshing procedure:'
@@ -154,11 +174,12 @@ contains
          print '(1x, 2a, i0)', MSGCONT, '  PRE-MESH   (BFM): ', msh_bfmpts_pre_
 #endif
          print '(1x, 2a, i0)', MSGCONT, '  POST-MESH  (BFM): ', msh_bfmpts_post_
+      if (.not. is_only_premesh_) then
          print '(1x, 2a, i0)', MSGCONT, '  POST-MESH  (BRM): ', msh_brmpts_post_
-      ! endif
+      endif
 
 
-#if (defined(BSA_TEST_ZONES_ARRAY))
+#if (defined(BSA_USES_ZONES_ARRAY))
       if (allocated(meshing_zones__)) deallocate(meshing_zones__)
 #endif
 
@@ -197,13 +218,18 @@ contains
 
 
 
-
    integer(int32) function openBFMDumpFiles_() result(iost)
       logical :: iun_open
-      integer :: iun, i, n
+      integer :: iun, i
 
-      ! TODO: adapt to multi-threaded env
-      n = 1
+#ifdef BSA_USE_OPTIMISED_OMP
+# define __fname bfm_dump_file_name_base_//char(i-1)
+      integer :: n
+      n = max_num_omp_threads_
+#else
+# define __fname bfm_dump_file_name_base_
+      integer, parameter :: n = 1
+#endif
       allocate(io_units_bfmdump(n))
       io_units_bfmdump = 0
 
@@ -216,7 +242,7 @@ contains
             if (.not. iun_open) exit
             iun = iun + 1
          enddo
-         iost = openBFMDumpFile_(iun, bfm_dump_file_name_)
+         iost = openBFMDumpFile_(iun, __fname)
          if (0_int32 /= iost) return
          io_units_bfmdump(i) = iun
          if (i == n) exit
@@ -224,24 +250,6 @@ contains
          i   = i + 1
       enddo
    end function
-
-
-
-
-   subroutine logZonePremeshingTotTime_(zname, rtime, npts)
-      character(len=*), intent(in)  :: zname
-      real(real64), intent(in)      :: rtime
-      integer, intent(in), optional :: npts
-
-      print '(1x, a, "Done zone  ", a)', &
-            INFOMSG, zname
-      if (present(npts)) then
-         print '(1x, a, "- n. of zone points:  ", i10)', &
-            MSGCONT, npts
-      endif
-      print '(1x, a, "- TOT. TIME:          ", g0, " [s]" /)', &
-         MSGCONT, rtime
-   end subroutine
 
 
 
@@ -269,7 +277,8 @@ contains
    end subroutine
 
 
-#if (defined(BSA_TEST_ZONES_ARRAY))
+
+#if (defined(BSA_USES_ZONES_ARRAY))
    integer(bsa_int_t) function computeTotNOfZones_(nlims) result(nzones)
       integer(bsa_int_t), value :: nlims
 
@@ -285,25 +294,8 @@ contains
          nzones = nzones + 4 + 1
       endif
    end function
-
-   subroutine dump_zones_(zones)
-      class(MRectZone_t), intent(in) :: zones(:)
-      integer(bsa_int_t) :: i, nzones
-
-      nzones = size(zones)
-      write(34342, *) nzones
-      do i = 1, nzones
-         write(34342, '(a, i0)') "Zone n.  ", i
-         write(34342, *) zones(i)%Ipt_
-         write(34342, *) zones(i)%Ept_
-         write(34342, *) zones(i)%deltaf_I_
-         write(34342, *) zones(i)%deltaf_J_
-         write(34342, *) zones(i)%ni_
-         write(34342, *) zones(i)%nj_
-      enddo
-   end subroutine
-
 #endif
+
 
 
    !> Computes Pre-meshing phase for BFM,
@@ -417,7 +409,7 @@ contains
 
 
       ! Pre-compute no. of zones, so that we can allocate rect zones
-#if (defined(BSA_TEST_ZONES_ARRAY))
+#if (defined(BSA_USES_ZONES_ARRAY))
       msh_NZones = computeTotNOfZones_(NLims)
       if (msh_NZones > 0_bsa_int_t) then
          allocate(meshing_zones__(msh_NZones), stat=iost)
@@ -479,15 +471,6 @@ contains
          call bsa_Abort("Freq deltas of BKG peak zone differ. Should be the same.")
 
 
-#ifdef _OPENMP
-# define __export_POD_trunc_id__  omp_get_thread_num()+1
-      max_num_omp_threads_ = omp_get_max_threads()
-      if (0_bsa_int_t == max_num_omp_threads_) then
-         call bsa_Abort("omp_get_max_threads()  has returned 0.")
-      endif
-#else
-# define __export_POD_trunc_id__  1
-#endif
       if (do_export_POD_info_) then
          open(unit=iun_POD_trunc_       &
             , file=iun_POD_trunc_fname_ &
@@ -506,14 +489,14 @@ contains
 #endif
       endif
 
-      call bkgz%compute()
-#ifndef BSA_USE_POD_DATA_CACHING
-      te = timing_clock()
-#endif
-
-#if (defined(BSA_TEST_ZONES_ARRAY))
+#if (defined(BSA_USES_ZONES_ARRAY))
       meshing_zones__(1) = bkgz
       zones_offset__ = 1
+#else
+      call bkgz%compute()
+# ifndef BSA_USE_POD_DATA_CACHING
+      te = timing_clock()
+# endif
 #endif
 
       if (.not. allocated(limits)) goto 998  ! NOTE: BKG zone covers them all, bad..
@@ -526,15 +509,13 @@ contains
          INFOMSG, '  Limits frontiers:', limits
       write(*, *) ''
 
-
-#ifndef BSA_USE_POD_DATA_CACHING
+#ifdef __print_premesh_update
       write(*, *) ''
       write(*, *) ''
-      call print_premesh_zone_update(msh_NZones, .true.)
+      call print_premesh_zone_update(1, .true.)
 #endif
 
-
-      block
+      all_other_zones: block
 
          !> Number of main directions ['NORTH', 'EAST ', 'SOUTH', 'WEST ']
          integer(int32), parameter :: N_DIRS_FULL = 4_int32
@@ -647,7 +628,7 @@ contains
          !$omp          , refmts, deltas, inter_modes_, basePts, base_i, bases_i_ &
          !$omp          , struct_data, wd, settings                  &
          !$omp          , id_im_last, maxF, NLims, getBFM_msh, pol   &
-#if (defined(BSA_TEST_ZONES_ARRAY))
+#if (defined(BSA_USES_ZONES_ARRAY))
          !$omp          , meshing_zones__, zones_offset__            &
 #endif
          !$omp          , NFREQS, NNODES, NNODESL, NLIBS, NLIBSL     &
@@ -728,13 +709,13 @@ contains
                   endif
                endif
 
-#if (defined(BSA_TEST_ZONES_ARRAY))
+#if (defined(BSA_USES_ZONES_ARRAY))
                meshing_zones__(zones_offset__ + (idir-1)*NLimsP1 + ilim) = rz
 #else
                call rz%compute()
-#endif
-#ifndef BSA_USE_POD_DATA_CACHING
+# ifndef BSA_USE_POD_DATA_CACHING
                n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
+# endif
 #endif
 
             enddo ! limits
@@ -763,20 +744,20 @@ contains
                endif
             endif
 
-#if (defined(BSA_TEST_ZONES_ARRAY))
+#if (defined(BSA_USES_ZONES_ARRAY))
             meshing_zones__(zones_offset__ + (idir-1)*NLimsP1 + NLimsP1) = rz
 #else
             call rz%compute()
-#endif
-#ifndef BSA_USE_POD_DATA_CACHING
+# ifndef BSA_USE_POD_DATA_CACHING
             te = timing_clock()
             n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
+# endif
 #endif
          enddo ! n dirs
          !$omp end parallel do
 
 
-#ifndef BSA_USE_POD_DATA_CACHING
+#ifdef __print_premesh_update
          call print_premesh_zone_update(msh_NZones, .true.)
 #endif
 
@@ -789,7 +770,7 @@ contains
 #endif
          inter_modes_(NLimsP1) = id_im_last
 
-#if (defined(BSA_TEST_ZONES_ARRAY))
+#if (defined(BSA_USES_ZONES_ARRAY))
          zones_offset__ = zones_offset__ + (NLimsP1*4)
 #endif
 
@@ -801,7 +782,7 @@ contains
 
          if (ipre_mesh_type == BSA_PREMESH_TYPE_DIAG_CREST_NO) then
 
-            block
+            premesh_type_diag_no: block
                character(len=1) :: bases_ch(4)
                real(bsa_real_t) :: init_freq_, rbase_
                real(bsa_real_t) :: main_rz_rot_, left_rz_rot_, right_rz_rot_
@@ -810,7 +791,7 @@ contains
                character(len = 1)  :: left_known_coord_, right_known_coord_
                integer(int32)      :: left_sign_, right_sign_, main_refs_
                integer(int32)      :: idirP1_
-#if (defined(BSA_TEST_ZONES_ARRAY))
+#if (defined(BSA_USES_ZONES_ARRAY))
                integer(bsa_int_t)  :: zones_local_offset_
 #endif
 
@@ -838,7 +819,7 @@ contains
 #endif
                !$omp          , basePts, policies, deltas                     &
                !$omp          , struct_data, wd, settings, limits             &
-#if (defined(BSA_TEST_ZONES_ARRAY))
+#if (defined(BSA_USES_ZONES_ARRAY))
                !$omp          , meshing_zones__, zones_offset__               &
 #endif
                !$omp          , NFREQS, NNODES, NNODESL, NLIBS, NLIBSL        &
@@ -870,14 +851,14 @@ contains
                   iim = 1
                   call rz%setInterestModeIndexPtr(iim)
 
-#if (defined(BSA_TEST_ZONES_ARRAY))
+#if (defined(BSA_USES_ZONES_ARRAY))
                   zones_local_offset_ = zones_offset__ + ((idir-1)*(NLimsP1 + NLims*2)) + 1
                   meshing_zones__(zones_local_offset_) = rz
 #else
                   call rz%compute()
-#endif
-#ifndef BSA_USE_POD_DATA_CACHING
+# ifndef BSA_USE_POD_DATA_CACHING
                   n_bfm_pts_pre_ = rz%zoneTotNPts()
+# endif
 #endif
 
                   ptE = rz%Ept_   ! saving end point
@@ -909,14 +890,14 @@ contains
                         ptI, left_sign_ * rlimit_, 'j', &
                         rbase_, left_known_coord_, delta_main_rz_, delta_main_rz_)
 
-#if (defined(BSA_TEST_ZONES_ARRAY))
+#if (defined(BSA_USES_ZONES_ARRAY))
                      zones_local_offset_ = zones_local_offset_ + 1
                      meshing_zones__(zones_local_offset_) = rz
 #else
                      call rz%compute()
-#endif
-#ifndef BSA_USE_POD_DATA_CACHING
+# ifndef BSA_USE_POD_DATA_CACHING
                      n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
+# endif
 #endif
 
                      ptE = rz%Ept_   ! saving end point (becomes init point at next iter)
@@ -931,14 +912,14 @@ contains
                         ptI, left_sign_ * init_freq_, left_known_coord_, &
                         rbase_, 'i', delta_main_rz_, delta_main_rz_)
 
-#if (defined(BSA_TEST_ZONES_ARRAY))
+#if (defined(BSA_USES_ZONES_ARRAY))
                      zones_local_offset_ = zones_local_offset_ + 1
                      meshing_zones__(zones_local_offset_) = rz
 #else
                      call rz%compute()
-#endif
-#ifndef BSA_USE_POD_DATA_CACHING
+# ifndef BSA_USE_POD_DATA_CACHING
                      n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
+# endif
 #endif
 
                      !
@@ -949,32 +930,27 @@ contains
                         ptI, right_sign_ * init_freq_, right_known_coord_, &
                         rbase_, 'j', delta_main_rz_, delta_main_rz_)
 
-#if (defined(BSA_TEST_ZONES_ARRAY))
+#if (defined(BSA_USES_ZONES_ARRAY))
                      zones_local_offset_ = zones_local_offset_ + 1
                      meshing_zones__(zones_local_offset_) = rz
 #else
                      call rz%compute()
-#endif
-#ifndef BSA_USE_POD_DATA_CACHING
+# ifndef BSA_USE_POD_DATA_CACHING
                      n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
+# endif
 #endif
-
                   enddo ! ilim = 2, NLimsP1
 
 #ifndef BSA_USE_POD_DATA_CACHING
                   te = timing_clock()
-                  !$omp critical
-                  ! call logZonePremeshingTotTime_(z_name_, timing_getElapsedSeconds(te, ti), n_bfm_pts_pre_)
-                  !$omp end critical
 #endif
                enddo ! idir
                !$omp end parallel do
 
-#if (defined(BSA_TEST_ZONES_ARRAY))
+#if (defined(BSA_USES_ZONES_ARRAY))
                zones_offset__ = zones_offset__ + (NLimsP1*4) + (NLims * 4 * 2)
 #endif
-            end block
-
+            end block premesh_type_diag_no
 
 
          elseif (ipre_mesh_type == BSA_PREMESH_TYPE_DIAG_CREST_YES) then
@@ -1006,7 +982,6 @@ contains
             do idir = 1, N_THREADS_MIN_
 
                ti = timing_clock()
-
                idir_t2 = idir * 2
 
                call rz%setRotation(ROTATIONS(idir_t2))
@@ -1016,17 +991,17 @@ contains
                rtmp     = sign_dir * maxF
                call rz%defineFromDeltas(&
                   basePts(idir_t2), 'i', df_I, df_J, rtmp, rtmp, force=.true.)
+#ifndef BSA_USES_ZONES_ARRAY
                call rz%compute()
-
+#endif
 #ifndef BSA_USE_POD_DATA_CACHING
                te = timing_clock()
 #endif
-
             enddo ! idir
             !$omp end parallel do
 
 
-#ifndef BSA_USE_POD_DATA_CACHING
+#ifdef __print_premesh_update
             call print_premesh_zone_update(msh_NZones, .true.)
 #endif
 
@@ -1039,7 +1014,7 @@ contains
             basePts(2) = basePts(1)
             basePts(1) = basePts(3)
 
-            block
+            premesh_type_diag_yes: block
                type(MTriangZone_t) :: tz
                type(MPoint_t)      :: ptA, ptB
                real(bsa_real_t)    :: lim_I, lim_J, tmprot, tmprots(2), tmpdelta
@@ -1104,7 +1079,9 @@ contains
                   call tz%setRefinements(rftmp(1), rftmp(2))
                   call tz%setPolicy(pol)
                   call tz%define(basePts(idir), ptI, ptA)
+#ifndef BSA_USES_ZONES_ARRAY
                   call tz%compute()
+#endif
 #ifndef BSA_USE_POD_DATA_CACHING
                   n_bfm_pts_pre_ = n_bfm_pts_pre_ + tz%zoneTotNPts()
 #endif
@@ -1167,7 +1144,9 @@ contains
                         call rz%setPolicy(policies(ilim))
                         call rz%defineFromEndPtCoordAndBase(&
                            ptI, - lim * LIM_SIGN_DIRS(idir_t2), 'j', base_i, 'i', called=.false.)
+#ifndef BSA_USES_ZONES_ARRAY
                         call rz%compute()
+#endif
 #ifndef BSA_USE_POD_DATA_CACHING
                         n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
 #endif
@@ -1203,7 +1182,9 @@ contains
                         call tz%setRefinements(rz%nj_, rz%nj_)
                         call tz%setPolicy(pol)
                         call tz%define(ptI, ptA, rz%Ipt_)
+#ifndef BSA_USES_ZONES_ARRAY
                         call tz%compute()
+#endif
 #ifndef BSA_USE_POD_DATA_CACHING
                         n_bfm_pts_pre_ = n_bfm_pts_pre_ + tz%zoneTotNPts()
 #endif
@@ -1216,7 +1197,9 @@ contains
                         call rz%defineFromEndPtCoordAndBase(&
                            rz%Ipt_, lim_J, 'j', rtmp, 'i', &
                            deltas(2, ilim) * pol%delta_fI_fct_, deltas(2, ilim) * pol%delta_fJ_fct_)
+#ifndef BSA_USES_ZONES_ARRAY
                         call rz%compute()
+#endif
 #ifndef BSA_USE_POD_DATA_CACHING
                         n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
 #endif
@@ -1229,7 +1212,9 @@ contains
                         ! 1. triang leveling zone
                         ptI = MPoint_t(ptB%fi_, - lim * LIM_SIGN_DIRS(idir_t2))
                         call tz%define(ptI, ptB, ptE)
+#ifndef BSA_USES_ZONES_ARRAY
                         call tz%compute()
+#endif
 #ifndef BSA_USE_POD_DATA_CACHING
                         n_bfm_pts_pre_ = n_bfm_pts_pre_ + tz%zoneTotNPts()
 #endif
@@ -1244,7 +1229,9 @@ contains
                            tz%Cpt_, lim_I, 'i', rtmp, 'i', &
                            deltas(2, ilim) * pol%delta_fI_fct_, deltas(2, ilim) * pol%delta_fJ_fct_)
 
+#ifndef BSA_USE_OPTIMISED_OMP
                         call rz%compute()
+#endif
 #ifndef BSA_USE_POD_DATA_CACHING
                         n_bfm_pts_pre_ = n_bfm_pts_pre_ + rz%zoneTotNPts()
 #endif
@@ -1276,25 +1263,22 @@ contains
                         ptB = MPoint_t(ptI%fi_, ptI%fj_ + (deltaI_S2_2 * LIM_SIGN_DIRS(idir_t2)))
 
                         call tz%define(ptI, ptA, ptB)
+#ifndef BSA_USES_ZONES_ARRAY
                         call tz%compute()
+#endif
 #ifndef BSA_USE_POD_DATA_CACHING
                         n_bfm_pts_pre_ = n_bfm_pts_pre_ + tz%zoneTotNPts()
 #endif
-
                      endif ! closing triangle, if not warn_zone_over_limits
 
 #ifndef BSA_USE_POD_DATA_CACHING
                      te = timing_clock()
 #endif
                   endif ! pre mesh mode
-
                enddo ! idir
                !$omp end parallel do
-
-            end block
-
+            end block premesh_type_diag_yes
          endif ! ipre_mesh_type
-
 
 
 
@@ -1303,7 +1287,7 @@ contains
          !
          if (.not. warn_zone_over_limits .and. (settings%i_full_coverage_ == 1)) then
 
-#ifndef BSA_USE_POD_DATA_CACHING
+#ifdef __print_premesh_update
             call print_premesh_zone_update(msh_NZones, .true.)
 #endif
 
@@ -1344,7 +1328,7 @@ contains
             !$omp          , DIRS_LABELS, ROTATIONS, LIM_SIGN_DIRS, LEFT_RZ_SIGNS   &
 #endif
             !$omp          , struct_data, wd, settings, max_ext, maxext_sym_        &
-#if (defined(BSA_TEST_ZONES_ARRAY))
+#if (defined(BSA_USES_ZONES_ARRAY))
             !$omp          , meshing_zones__, zones_offset__                        &
 #endif
             !$omp          , NFREQS, NNODES, NNODESL, NLIBS, NLIBSL, NMODES, DIRS   &
@@ -1364,14 +1348,13 @@ contains
                   LIM_SIGN_DIRS(idir) * maxext_sym_(idir), &
                   LEFT_RZ_SIGNS(idir) * max_ext, force=.true.)
 
-#if (defined(BSA_TEST_ZONES_ARRAY))
+#if (defined(BSA_USES_ZONES_ARRAY))
                meshing_zones__(zones_offset__ + idir) = rz
 #else
                call rz%compute()
-#endif
-
-#ifndef BSA_USE_POD_DATA_CACHING
+# ifndef BSA_USE_POD_DATA_CACHING
                te = timing_clock()
+# endif
 #endif
             enddo ! ndirs
             !$omp end parallel do
@@ -1383,11 +1366,12 @@ contains
          if (allocated(deltas)) deallocate(deltas)
          if (allocated(refmts)) deallocate(refmts)
          if (allocated(inter_modes_)) deallocate(inter_modes_)
-      endblock
+      end block all_other_zones
 
 
       998 continue
-#ifndef BSA_USE_POD_DATA_CACHING
+
+#ifdef __print_premesh_update
       call print_premesh_zone_update(msh_NZones, .true.)
       write(*, *) ''
 #endif
@@ -1414,20 +1398,6 @@ contains
 
 
 
-
-
-
-
-
-
-
-
-
-#ifdef BSA_USE_POD_DATA_CACHING
-# define __bfm_undump__
-#else
-# define __bfm_undump__  ,bfm_undump
-#endif
    subroutine Mesh()
       !! Post meshing phase.
       !! Once data has been dumped from PreMeshing phase,
@@ -1450,10 +1420,12 @@ contains
       class(*), pointer :: export_data_base_ptr_ => null()
 
 
-      ! skip them, we already have them stored in module variables
-      ! However, there since they might serve outside this scope
-      ! (i.e. if undumping file from another program)
-      rewind(io_units_bfmdump(1))        ! make sure to rewind unit before starting reading it
+      ! make sure to rewind unit(s) before starting reading
+      do izone = 1, size(io_units_bfmdump)
+         rewind(io_units_bfmdump(izone))
+      enddo
+
+      ! Read main unit header info (only if zones aready computed in PreMesh)
       read(io_units_bfmdump(1)) izone    ! POD caching flag
       if (izone /= POD_CACHING_FLAG) call bsa_Abort("Incompatible Dump file, must be regenerated. Aborting.")
       read(io_units_bfmdump(1)) izone    ! n modes effective
@@ -1461,15 +1433,12 @@ contains
       read(io_units_bfmdump(1)) nzones   ! n. of meshing zones
       read(io_units_bfmdump(1)) ival2    ! msh_max_zone_PTS
 
-
-#ifndef BSA_USE_POD_DATA_CACHING
-# ifndef _OPENMP
+#ifdef __post_mesh_uses_global_bfmundump
       ! allocate BFM tmp variable to hold data for at most the zone with max n. of points.
       ! NOTE: in case of OMP parallelisation, this allocation will be resized internally if
       !       needed. Otherwise, for serial case, at most  msh_max_zone_NPts  memory needed (once).
       allocate(bfm_undump(dimM_bisp_, ival2), stat=izone_id, errmsg=emsg)
       if (izone_id /= 0) call allocKOMsg('bfm_undump', izone_id, emsg)
-# endif
 #endif
 
       if (do_export_base_) then
@@ -1478,13 +1447,16 @@ contains
          export_data_base_local_   =  export_data_base_
          export_data_base_ptr_     => export_data_base_local_
       else
-#if  (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if  (defined(BSA_USE_OPTIMISED_OMP))
          n_threads = max_num_omp_threads_
 #else
          n_threads = 1
 #endif
       endif
 
+      do izone_ = 1, n_threads
+         print *, io_units_bfmdump(izone_)
+      enddo
 
       call print_pre_post_mesh_header('POST-MESH')
       print '(1x, 2a, i3, a /)', INFOMSG, &
@@ -1493,19 +1465,22 @@ contains
 
       ! NOTE: Undump main Rect BKG Peak zone separately
       !
+#ifdef BSA_USE_OPTIMISED_OMP
+      call meshing_zones__(1)%compute(bfm_undump)
+      call meshing_zones__(1)%interpolate(bfm_undump, export_data_base_ptr_)
+#else
       read(io_units_bfmdump(1)) izone_id
       print '(1x, 2a, i6, a, i0 )', &
          INFOMSG, 'Interpolating zone n. ', 1, ', with ID=  ', izone_id
       if (do_export_base_) export_data_base_local_%idZone_ = izone_id
-      call UndumpZone( rz   __bfm_undump__)
+      call UndumpZone(rz, bfm_undump)
       call rz%interpolate(bfm_undump, export_data_base_ptr_)
+#endif
 
 
-#ifndef BSA_USE_POD_DATA_CACHING
-# if  (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
-      deallocate(bfm_undump)  !<-- better to copy a null pointer than a whole bunch of memory.
+#ifdef __postmesh_use_per_thread_bfmundump
+      if (allocated(bfm_undump)) deallocate(bfm_undump)  !<-- better to copy a null pointer than a whole bunch of memory.
       if (associated(export_data_base_ptr_)) export_data_base_ptr_ => null()
-# endif
 #endif
 
 
@@ -1514,14 +1489,12 @@ contains
 
       ! NOTE: no need to check for EOF. We know how many zones we have dumped.
       !
-#if  (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
-
       !$omp parallel do &
       !$omp   firstprivate(export_data_base_local_, export_data_base_ptr_), &
+#ifdef __postmesh_use_per_thread_bfmundump
+      !$omp   firstprivate(bfm_undump),     &
+#endif
       !$omp   private(z, rz, tz, izone_id), &
-# ifndef BSA_USE_POD_DATA_CACHING
-      !$omp   private(bfm_undump), &
-# endif
       !$omp   shared(struct_data, wd, settings, do_export_base_   &
 #ifndef __GFORTRAN__
       !$omp          , MZone_ID                                   &
@@ -1532,15 +1505,19 @@ contains
       !$omp          , bkg_peakw_, izone, msh_NZones, m3mr_msh_ptr_           &
       !$omp          , msh_ZoneLimsInterestModes, do_validate_deltas_         &
       !$omp          , msh_bfmpts_post_, msh_brmpts_post_, io_units_bfmdump   &
+#ifdef BSA_USE_OPTIMISED_OMP
+      !$omp          , meshing_zones__ &
+#endif
       !$omp          , is_visual_, is_brn_export_, visual_idx_                &
       !$omp          , dimM_bisp_, getBFM_msh, getBRM_msh, write_brm_fptr_),  &
       !$omp   num_threads(n_threads)
-#endif
       do izone_ = 2, nzones
 
-#if  (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#ifdef BSA_USE_OPTIMISED_OMP
+         call meshing_zones__(izone_)%compute(bfm_undump)
+         ! call meshing_zones__(izone_)%interpolate(bfm_undump, export_data_base_ptr_)
+#else
          !$omp critical
-#endif
          read(io_units_bfmdump(1)) izone_id   ! fetch zone type ID
 
          izone = izone + 1
@@ -1549,26 +1526,24 @@ contains
             INFOMSG, 'Interpolating zone n. ', izone, ', with ID=  ', izone_id
 
          if (izone_id == MZone_ID%RECTANGLE) then
-            call UndumpZone( rz   __bfm_undump__)
+            call UndumpZone(rz, bfm_undump)
             z => rz
          elseif (izone_id == MZone_ID%TRIANGLE) then
-            call UndumpZone( tz   __bfm_undump__)
+            call UndumpZone(tz, bfm_undump)
             z => tz
          endif
-#if  (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
          !$omp end critical
-#endif
 
          if (do_export_base_) then
             export_data_base_local_%idZone_ = izone_id
             if (.not. associated(export_data_base_ptr_)) export_data_base_ptr_ => export_data_base_local_
          endif
          call z%interpolate(bfm_undump, export_data_base_ptr_)
-      enddo ! nZones
-#if  (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
-      !$omp end parallel do
 #endif
+      enddo ! nZones
+      !$omp end parallel do
 
+      99 continue
 #ifndef BSA_USE_POD_DATA_CACHING
       if (allocated(bfm_undump)) deallocate(bfm_undump)
 #endif

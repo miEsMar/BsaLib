@@ -66,7 +66,7 @@ option(enable-sym-ev-routine   "Enable usage of 'dsyev' instead of 'dgesvd'"    
 
 # experimental
 option(enable-pod-caching     "Enable POD caching. EXPERIMENTAL!"                   OFF)
-option(enable-post-mesh-omp   "Enable using OpenMP in post meshing. EXPERIMENTAL!"  OFF)
+option(enable-optimal-omp     "Enable using OpenMP in post meshing. EXPERIMENTAL!"  OFF)
 
 # GPU options
 option(enable-gpu-code         "Enable GPU kernel code with OpenCL (defaulr) or CUDA backends"  OFF)

@@ -287,8 +287,15 @@ module BsaLib_MRectZone
 
 
       !> Actual zone comutation (pre phase).
-      module subroutine compute_rz_(this)
+      module subroutine compute_rz_(this &
+#ifdef BSA_USE_OPTIMISED_OMP
+         & , bfm &
+#endif
+      &)
          class(MRectZone_t), intent(inout) :: this
+#ifdef BSA_USE_OPTIMISED_OMP
+         real(bsa_real_t), allocatable, intent(inout) :: bfm(:, :)
+#endif
       end subroutine
 
 

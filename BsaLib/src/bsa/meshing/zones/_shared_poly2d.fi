@@ -27,14 +27,43 @@
 #endif
 
 
+#ifdef _OPENMP
+# define __export_POD_trunc_id__  omp_get_thread_num()+1
+#else
+# define __export_POD_trunc_id__  1
+#endif
+
+#ifdef BSA_USE_POD_DATA_CACHING
+# define __bfm_dump__
+#else
+# define __bfm_dump__  ,bfm
+#endif
+
+#ifdef BSA_USE_OPTIMISED_OMP
+# define __compute_bfm_inout__ intent(inout),
+#else
+# define __compute_bfm_inout__
+# define __dump_needs_sync
+#endif
+
+
 ! #define __zone_layout_validation__
 #if defined(BSA_DEBUG) && !(defined(__zone_layout_validation__))
 #  define __zone_layout_validation__
 #endif
 
 
-__mod_sub_compute subroutine __sub_name_compute(this)
-   !! Zone computation (pre-meshing phase).
+
+
+!> Zone computation (pre-meshing phase).
+__mod_sub_compute subroutine __sub_name_compute(this &
+#ifdef BSA_USE_OPTIMISED_OMP
+   , bfm &
+#endif
+& )
+#ifdef _OPENMP
+      !$ use omp_lib, only: omp_get_thread_num
+#endif
    use BsaLib_Data, only: &
       getBFM_msh                 &
 #ifdef _BSA_M3MF_ONLY_PREMESH
@@ -51,21 +80,8 @@ __mod_sub_compute subroutine __sub_name_compute(this)
    use BsaLib_MPoint, only: MPoint_t
 #endif
 
-#undef __mod_sub_compute
-
-#ifdef _OPENMP
-      !$ use omp_lib, only: omp_get_thread_num
-# define __export_POD_trunc_id__  omp_get_thread_num()+1
-#else
-# define __export_POD_trunc_id__  1
-#endif
-
-#ifdef BSA_USE_POD_DATA_CACHING
-# define __bfm_dump__
-#else
-# define __bfm_dump__  ,bfm
-#endif
    class(__this_type), intent(inout) :: this
+   real(bsa_real_t), __compute_bfm_inout__ allocatable :: bfm(:, :)
 
 
 #ifdef __triang_zone__
@@ -79,7 +95,7 @@ __mod_sub_compute subroutine __sub_name_compute(this)
    if (this%base_I_ <= MACHINE_PRECISION .or. this%base_J_ <= MACHINE_PRECISION) then
       print '(1x, 2a)', &
          WARNMSG, 'Detected an empy rectangular zone.'
-      goto 998
+      goto 99
    endif
 
    if (this%deltaf_I_ <= MACHINE_PRECISION .or. this%deltaf_J_ <= MACHINE_PRECISION) &
@@ -96,7 +112,6 @@ __mod_sub_compute subroutine __sub_name_compute(this)
       real(bsa_real_t) :: ctr_infl, brd_infl, vtx_infl
       real(bsa_real_t) :: dfIi, dfIj, dfJi, dfJj
       real(bsa_real_t), dimension(1), target :: base_fi, base_fj, fi, fj
-      real(bsa_real_t), allocatable          :: bfm(:, :)
 
 # ifdef _BSA_M3MF_ONLY_PREMESH
 #   ifdef __triang_zone__
@@ -188,8 +203,24 @@ __mod_sub_compute subroutine __sub_name_compute(this)
       !       couple of nodal indexes, returning a 
       !       dimBISP 1D vector, so better memory access.
       !       However, later maybe better invert.
-      allocate(bfm(dimM_bisp_, zNp), stat=i)
-      if (i /= 0) call bsa_Abort("Failed to allocate 'bfm' in pre-meshing")
+#ifdef BSA_USE_OPTIMISED_OMP
+      if (allocated(bfm)) then
+         if (zNp > size(bfm, 2)) then
+            deallocate(bfm)
+         endif
+      endif
+#endif
+      if (.not. allocated(bfm)) then
+         allocate(bfm(dimM_bisp_, zNp), stat=i)
+         if (i /= 0) then
+#ifdef BSA_USE_OPTIMISED_OMP
+            print '(1x, 2a, i4, a)', ERRMSG, &
+               'Thread  ', omp_get_thread_num(), '  failed to allocate ''bfm'' in pre-meshing.'
+#else
+            call bsa_Abort("Failed to allocate 'bfm' in pre-meshing")
+#endif
+         endif
+      endif
 
 
       !============================================================
@@ -383,8 +414,9 @@ __mod_sub_compute subroutine __sub_name_compute(this)
 #  endif
 # endif
 
-
+# ifdef __dump_needs_sync
       !$omp critical
+# endif
 # ifdef _BSA_M3MF_ONLY_PREMESH
       m3mf_msh_ptr_   = m3mf_msh_ptr_ + (intg * settings%i_bisp_sym_) ! update main integral
 
@@ -418,27 +450,26 @@ __mod_sub_compute subroutine __sub_name_compute(this)
 
 #else  ! BSA_USE_POD_DATA_CACHING  defined
 
+# ifdef __dump_needs_sync
       !$omp critical
+# endif
 #endif
-      msh_NZones = msh_NZones + 1            ! update n. of zones count
-      call DumpZone(this  __bfm_dump__ )     ! dump zone info
+      msh_NZones = msh_NZones + 1   ! update n. of zones count
+      call DumpZone(this, bfm)      ! dump zone info
+#ifdef __dump_needs_sync
       !$omp end critical
-
-#ifndef BSA_USE_POD_DATA_CACHING
-      if (allocated(bfm))  deallocate(bfm)
 #endif
    end block
 
-#undef __bfm_dump__
-
-
 #ifndef __triang_zone__
    ! NOTE: reset them to 0 for ensuring next zone correct setup
-   998 continue
+   99 continue
    this%refmts_set_ = .false.
    this%deltas_set_ = .false.
 #endif
-
+#ifndef BSA_USE_OPTIMISED_OMP
+   if (allocated(bfm)) deallocate(bfm)
+#endif
 end subroutine __sub_name_compute
 
 
@@ -887,7 +918,7 @@ end subroutine __sub_name_compute
       end block
 
 
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
 # define __FREQ_I_  fi_v_(i_brm) = fi_ptr(1)
 # define __FREQ_J_  fj_v_(i_brm) = fj_ptr(1)
 # define __FREQ_I_shift_  fi_v_(i_brm_shift) = fi_ptr(1)
@@ -1029,7 +1060,7 @@ end subroutine __sub_name_compute
       bfm_new_left(:, 1) = bfmtail(:, 1)
 
       call getBRM_msh(brm(:, 1:1), fi, fj, bfmtail)
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
       __FREQ_I_
       __FREQ_J_
 #else
@@ -1073,7 +1104,7 @@ end subroutine __sub_name_compute
                i_brm = i_brm + 1
                bfm_new_left(:, i_brm:i_brm) = (bfmhead * dfJtail + bfmtail * dfJhead) / dfJ_bfm_ref_
                call getBRM_msh(brm(:, i_brm:i_brm), fi, fj, bfm_new_left(:, i_brm:i_brm))
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
                __FREQ_I_
                __FREQ_J_
 #else
@@ -1101,7 +1132,7 @@ end subroutine __sub_name_compute
             i_brm                  = i_brm + 1
             bfm_new_left(:, i_brm) = bfmhead(:, 1)
             call getBRM_msh(brm(:, i_brm:i_brm), fi, fj, bfm_new_left(:, i_brm:i_brm))
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
             __FREQ_I_
             __FREQ_J_
 #else
@@ -1154,7 +1185,7 @@ end subroutine __sub_name_compute
             i_brm = i_brm + 1
             bfm_new_left(:, i_brm:i_brm) = (bfmhead * dfJtail + bfmtail * dfJhead) / dfJ_bfm_ref_
             call getBRM_msh(brm(:, i_brm:i_brm), fi, fj, bfm_new_left(:, i_brm:i_brm))
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
             __FREQ_I_
             __FREQ_J_
 #else
@@ -1184,7 +1215,7 @@ end subroutine __sub_name_compute
          i_brm = i_brm + 1
          bfm_new_left(:, i_brm) = bfmhead(:, 1)
          call getBRM_msh(brm(:, i_brm:i_brm), fi, fj, bfm_new_left(:, i_brm:i_brm))
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
          __FREQ_I_
          __FREQ_J_
 #else
@@ -1271,7 +1302,7 @@ end subroutine __sub_name_compute
             call getBRM_msh(brm(:, i_brm_shift:i_brm_shift), fi, fj, bfm_new_right(:, 1:1))
 
             ! call write_brm_fptr_(fi_ptr, fj_ptr, brm(:, i_brm_shift), pdata_ptr)
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
             __FREQ_I_shift_
             __FREQ_J_shift_
 #endif
@@ -1320,7 +1351,7 @@ end subroutine __sub_name_compute
                            fi, fj, bfm_new_right(:, i_bfm_interpJ:i_bfm_interpJ))
 
                      ! call write_brm_fptr_(fi_ptr, fj_ptr, brm(:, i_brm_shift), pdata_ptr)
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
                      __FREQ_I_shift_
                      __FREQ_J_shift_
 #endif
@@ -1348,7 +1379,7 @@ end subroutine __sub_name_compute
                         fi, fj, bfm_new_right(:, i_bfm_interpJ:i_bfm_interpJ))
 
                   ! call write_brm_fptr_(fi_ptr, fj_ptr, brm(:, i_brm_shift), pdata_ptr)
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
                   __FREQ_I_shift_
                   __FREQ_J_shift_
 #endif
@@ -1396,7 +1427,7 @@ end subroutine __sub_name_compute
                         fi, fj, bfm_new_right(:, i_bfm_interpJ:i_bfm_interpJ))
 
                   ! call write_brm_fptr_(fi_ptr, fj_ptr, brm(:, i_brm_shift), pdata_ptr)
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
                   __FREQ_I_shift_
                   __FREQ_J_shift_
 #endif
@@ -1416,7 +1447,7 @@ end subroutine __sub_name_compute
                      fi, fj, bfm_new_right(:, i_bfm_interpJ:i_bfm_interpJ))
 
                ! call write_brm_fptr_(fi_ptr, fj_ptr, brm(:, i_brm_shift), pdata_ptr)
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
                __FREQ_I_shift_
                __FREQ_J_shift_
 #endif
@@ -1466,7 +1497,7 @@ end subroutine __sub_name_compute
                         fi, fj, bfm_new_right(:, i_bfm_interpJ:i_bfm_interpJ))
 
                   ! call write_brm_fptr_(fi_ptr, fj_ptr, brm(:, i_brm_shift), pdata_ptr)
-# if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+# if (defined(BSA_USE_OPTIMISED_OMP))
                   __FREQ_I_shift_
                   __FREQ_J_shift_
 # endif
@@ -1485,7 +1516,7 @@ end subroutine __sub_name_compute
                      fi, fj, bfm_new_right(:, i_bfm_interpJ:i_bfm_interpJ))
 
                ! call write_brm_fptr_(fi_ptr, fj_ptr, brm(:, i_brm_shift), pdata_ptr)
-# if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+# if (defined(BSA_USE_OPTIMISED_OMP))
                __FREQ_I_shift_
                __FREQ_J_shift_
 # endif
@@ -1544,7 +1575,7 @@ end subroutine __sub_name_compute
 
                i_brm = i_brm + 1
                call getBRM_msh(brm(:, i_brm:i_brm), fi, fj, bfm_interp(:, 1:1))
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
                __FREQ_I_
                __FREQ_J_
 #else
@@ -1562,7 +1593,7 @@ end subroutine __sub_name_compute
 
                   i_brm = i_brm + 1
                   call getBRM_msh(brm(:, i_brm:i_brm), fi, fj, bfm_interp(:, pJtail:pJtail))
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
                   __FREQ_I_
                   __FREQ_J_
 #else
@@ -1604,7 +1635,7 @@ end subroutine __sub_name_compute
 
                   i_brm = i_brm + 1
                   call getBRM_msh(brm(:, i_brm:i_brm), fi, fj, bfm_interp(:, ipos:ipos))
-# if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+# if (defined(BSA_USE_OPTIMISED_OMP))
                   __FREQ_I_
                   __FREQ_J_
 # else
@@ -1618,7 +1649,7 @@ end subroutine __sub_name_compute
                fj(1) = fj(1) + dfJj_brm_interp
                i_brm               = i_brm + 1
                call getBRM_msh(brm(:, i_brm:i_brm), fi, fj, bfmhead)
-# if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+# if (defined(BSA_USE_OPTIMISED_OMP))
                __FREQ_I_
                __FREQ_J_
 # else
@@ -1641,7 +1672,7 @@ end subroutine __sub_name_compute
             fj_baseptI = fj_baseptI + dfIj_bfm_ref_
 
 
-#if !((defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP)))
+#ifndef BSA_USE_OPTIMISED_OMP
             ! Now, we can write actual new BFM I-dir infl line.
             fi(1) = fi_baseptI
             fj(1) = fj_baseptI
@@ -1714,7 +1745,7 @@ end subroutine __sub_name_compute
          call getBRM_msh(brm(:, i_brm_shift:i_brm_shift), fi, fj, bfm_new_right(:, 1:1))
 
          ! call write_brm_fptr_(fi_ptr, fj_ptr, brm(:, i_brm_shift), pdata_ptr)
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
          __FREQ_I_shift_
          __FREQ_J_shift_
 #endif
@@ -1764,7 +1795,7 @@ end subroutine __sub_name_compute
                         fi, fj, bfm_new_right(:, i_bfm_interpJ:i_bfm_interpJ))
 
                   ! call write_brm_fptr_(fi_ptr, fj_ptr, brm(:, i_brm_shift), pdata_ptr)
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
                   __FREQ_I_shift_
                   __FREQ_J_shift_
 #endif
@@ -1785,7 +1816,7 @@ end subroutine __sub_name_compute
                      fi, fj, bfm_new_right(:, i_bfm_interpJ:i_bfm_interpJ))
 
                ! call write_brm_fptr_(fi_ptr, fj_ptr, brm(:, i_brm_shift), pdata_ptr)
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
                __FREQ_I_shift_
                __FREQ_J_shift_
 #endif
@@ -1836,7 +1867,7 @@ end subroutine __sub_name_compute
                      fi, fj, bfm_new_right(:, i_bfm_interpJ:i_bfm_interpJ))
 
                ! call write_brm_fptr_(fi_ptr, fj_ptr, brm(:, i_brm_shift), pdata_ptr)
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
                __FREQ_I_shift_
                __FREQ_J_shift_
 #endif
@@ -1857,7 +1888,7 @@ end subroutine __sub_name_compute
                   fi, fj, bfm_new_right(:, i_bfm_interpJ:i_bfm_interpJ))
 
             ! call write_brm_fptr_(fi_ptr, fj_ptr, brm(:, i_brm_shift), pdata_ptr)
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
             __FREQ_I_shift_
             __FREQ_J_shift_
 #endif
@@ -1923,7 +1954,7 @@ end subroutine __sub_name_compute
 
             i_brm = i_brm + 1
             call getBRM_msh(brm(:, i_brm:i_brm), fi, fj, bfm_interp(:, 1:1))
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
             __FREQ_I_
             __FREQ_J_
 #else
@@ -1938,7 +1969,7 @@ end subroutine __sub_name_compute
 
                i_brm = i_brm + 1
                call getBRM_msh(brm(:, i_brm:i_brm), fi, fj, bfm_interp(:, pJtail:pJtail))
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
                __FREQ_I_
                __FREQ_J_
 #else
@@ -1979,7 +2010,7 @@ end subroutine __sub_name_compute
 
                i_brm               = i_brm + 1
                call getBRM_msh(brm(:, i_brm:i_brm), fi, fj, bfm_interp(:, ipos:ipos))
-# if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+# if (defined(BSA_USE_OPTIMISED_OMP))
                __FREQ_I_
                __FREQ_J_
 # else
@@ -1995,7 +2026,7 @@ end subroutine __sub_name_compute
             i_brm               = i_brm + 1
             call getBRM_msh(brm(:, i_brm:i_brm), fi, fj, bfmhead)
 
-# if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+# if (defined(BSA_USE_OPTIMISED_OMP))
             __FREQ_I_
             __FREQ_J_
 # else
@@ -2023,7 +2054,7 @@ end subroutine __sub_name_compute
 
 
 
-#if !((defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP)))
+#ifndef BSA_USE_OPTIMISED_OMP
 # if defined(__triang_zone__) && defined(__zone_layout_validation__)
          ! BUG: check this condition
          if (njNew_picurr /= ((njOld - 1) * (nipJ + 1) + 1)) &
@@ -2127,7 +2158,7 @@ end subroutine __sub_name_compute
 #endif ! __local_debug_write__
 
 
-#if (defined(_OPENMP)) && (defined(BSA_USE_POST_MESH_OMP))
+#if (defined(BSA_USE_OPTIMISED_OMP))
       call write_brm_fptr_(fi_v_, fj_v_, brm, pdata)
 #endif
 

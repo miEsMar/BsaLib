@@ -20,5 +20,6 @@ cmake \
     -D enable-cuda=ON \
     -D enable-gpu-double=OFF \
     -D enable-pod-caching=OFF \
+    -D enable-optimal-omp=ON \
     -S . -B ${builddir}
 

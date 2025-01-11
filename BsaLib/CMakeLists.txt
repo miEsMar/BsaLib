@@ -66,6 +66,8 @@ set_target_properties( BsaLib PROPERTIES
    DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX}
 )
 
+target_include_directories( BsaLib AFTER PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/include )
+
 
 if ( enable-pod-caching )
    target_compile_definitions( BsaLib PRIVATE BSA_USE_POD_DATA_CACHING )
@@ -76,8 +78,8 @@ endif()
 #      due to critical sections synchronisation where accessing shared 
 #      file I/O. For better performances, consider rethinking about the
 #      logic related, otherwise better use 1 thread only.
-if ( enable-post-mesh-omp )
-   target_compile_definitions( BsaLib PRIVATE BSA_USE_POST_MESH_OMP )
+if ( enable-optimal-omp AND enable-openmp )
+   target_compile_definitions( BsaLib PRIVATE BSA_USE_OPTIMISED_OMP )
 endif()
 
 

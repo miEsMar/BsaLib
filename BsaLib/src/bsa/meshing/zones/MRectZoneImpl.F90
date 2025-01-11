@@ -29,6 +29,7 @@ submodule(BsaLib_MRectZone) BsaLib_MRectZoneImpl
    use BsaLib_IO,       only: unit_debug_, io_units_bfmdump
    use BsaLib_MPoint,   only: MPoint_t, getPointsDistance
    use BsaLib_MZone,    only: MZone_ID, DumpZone
+   !$ use omp_lib,      only: omp_get_thread_num
    implicit none (type, external)
 
 
@@ -1169,6 +1170,7 @@ contains
 
 
 
+#include "iundump.h"
 
 
    module subroutine dumpRZ(this)
@@ -1181,20 +1183,17 @@ contains
       !!       current imlementation is what we are looking for.
       class(MRectZone_t), intent(in) :: this
 
-      write(io_units_bfmdump(1)) MZone_ID%RECTANGLE
+      write(io_units_bfmdump(__iun_dump)) MZone_ID%RECTANGLE
 
       ! init pt
-      write(io_units_bfmdump(1)) this%Ipt_%fi_, this%Ipt_%fj_
+      write(io_units_bfmdump(__iun_dump)) this%Ipt_%fi_, this%Ipt_%fj_
 
-      write(io_units_bfmdump(1)) this%rot_
-      write(io_units_bfmdump(1)) this%base_I_, this%base_J_
+      write(io_units_bfmdump(__iun_dump)) this%rot_
+      write(io_units_bfmdump(__iun_dump)) this%base_I_, this%base_J_
 
       ! NOTE: maybe useless ?
-      write(io_units_bfmdump(1)) this%ni_, this%nj_
+      write(io_units_bfmdump(__iun_dump)) this%ni_, this%nj_
    end subroutine dumpRZ
-
-
-
 
 
    module subroutine undumpRZ(this)
@@ -1208,20 +1207,20 @@ contains
       integer(bsa_int_t) :: ival1, ival2
 
       ! init point
-      read(io_units_bfmdump(1)) rval1, rval2
+      read(io_units_bfmdump(__iun_dump)) rval1, rval2
       call this%Ipt_%setfreqs(rval1, rval2)
 
       ! rotation
-      read(io_units_bfmdump(1)) rval1
+      read(io_units_bfmdump(__iun_dump)) rval1
       this%rot_ = rval1
 
       ! sides
-      read(io_units_bfmdump(1)) rval1, rval2
+      read(io_units_bfmdump(__iun_dump)) rval1, rval2
       this%base_I_ = rval1
       this%base_J_ = rval2
 
       ! refinements
-      read(io_units_bfmdump(1)) ival1, ival2
+      read(io_units_bfmdump(__iun_dump)) ival1, ival2
       call this%setRefinements(ival1, ival2, .true.)
    end subroutine undumpRZ
 

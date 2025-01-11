@@ -19,6 +19,7 @@ module BsaLib_MZone
    use BsaLib_Data,      only: bsa_Abort, test_no_bfm_mlr_
    use BsaLib_IO,        only: io_units_bfmdump
    use BsaLib_MPolicy,   only: MPolicy_t, MPolicy_NULL, assignment(=), operator(==)
+   !$ use omp_lib,       only: omp_get_thread_num
    implicit none (type, external)
    private
    public :: DumpZone, UndumpZone
@@ -48,6 +49,7 @@ module BsaLib_MZone
       procedure(intf_MZoneIntFct_),    pass, deferred :: zoneTotNPts
       procedure(intf_MZoneGenIn_),     pass, deferred :: dump
       procedure(intf_MZoneGenInOut_),  pass, deferred :: undump
+      procedure(intf_MZoneCompute_),   pass, deferred :: compute
       procedure(intf_MZoneInterp_),    pass, deferred :: interpolate
    end type MZone_t
 
@@ -68,6 +70,18 @@ module BsaLib_MZone
       subroutine intf_MZoneGenInOut_(this)
          import :: MZone_t
          class(MZone_t), intent(inout) :: this
+      end subroutine
+
+      subroutine intf_MZoneCompute_(this &
+#ifdef BSA_USE_OPTIMISED_OMP
+            & , bfm &
+#endif
+      & )
+         import :: MZone_t, bsa_real_t
+         class(MZone_t), intent(inout) :: this
+#ifdef BSA_USE_OPTIMISED_OMP
+         real(bsa_real_t), allocatable, intent(inout) :: bfm(:, :)
+#endif
       end subroutine
 
       subroutine intf_MZoneInterp_(this, bfm, pdata)
@@ -115,16 +129,12 @@ contains
 
 
 
+#include "iundump.h"
 
-   subroutine DumpZone(z  &
-#ifndef BSA_USE_POD_DATA_CACHING
-         , data &
-#endif
-   )
-      class(MZone_t), intent(in)   :: z
-#ifndef BSA_USE_POD_DATA_CACHING
-      real(bsa_real_t), intent(in) :: data(:, :)
-#endif
+
+   subroutine DumpZone(z, data)
+      class(MZone_t),   intent(in) :: z
+      real(bsa_real_t), intent(in), allocatable :: data(:, :)
 
       ! dump specific zone data
       ! NOTE: keep this first since 
@@ -135,56 +145,41 @@ contains
       call z%dump()
 
       ! policy
-      write(io_units_bfmdump(1)) z%policy_%getID()
+      write(io_units_bfmdump(__iun_dump)) z%policy_%getID()
 
       ! zone interest modes index ptr
-      write(io_units_bfmdump(1)) z%id_im_
+      write(io_units_bfmdump(__iun_dump)) z%id_im_
 
-
-      ! Dump BFM data.
-      !
-      ! ! write how many bytes in total to be read
-      ! ! afterwards. Then, dimBISP is automatically
-      ! ! deferred knowing num of zone's meshing points
-      ! tot = size(data)
-      ! write(io_units_bfmdump(1)) tot
-#ifndef BSA_USE_POD_DATA_CACHING
-      write(io_units_bfmdump(1)) data ! NOTE: dimBISP first, then nj * ni
-#endif
+      ! Dump BFM data (if present)
+      if (allocated(data)) then
+         write(io_units_bfmdump(__iun_dump)) data ! NOTE: dimBISP first, then nj * ni
+      endif
    end subroutine DumpZone
 
 
 
-#ifdef BSA_USE_POD_DATA_CACHING
-# define __bfm_dump__
-# define __decl__
-#else
-# define __bfm_dump__  ,bfm_undump
-# define __decl__ real(bsa_real_t), allocatable, intent(inout) :: bfm_undump(:, :)
-#endif
-   subroutine UndumpZone(z  __bfm_dump__ )
+
+   subroutine UndumpZone(z, bfm_undump)
 #ifndef BSA_USE_POD_DATA_CACHING
 # ifdef _OPENMP
       use BsaLib_Data, only: dimM_bisp_
 # endif
 #endif
       class(MZone_t), intent(inout) :: z
-      __decl__
+      real(bsa_real_t), allocatable, intent(inout) :: bfm_undump(:, :)
       character(len = 64) :: name_hdr
       integer(int32)      :: zNp
 
-#undef __bfm_dump__
-#undef __decl__
 
       call z%undump()  ! read zone's specific data first
 
       ! policy (ID)
-      read(io_units_bfmdump(1)) zNp
+      read(io_units_bfmdump(__iun_dump)) zNp
       call z%setPolicy(zNp)
       if (test_no_bfm_mlr_) call z%disableZonePolicyBfmMLR()
 
       ! zone interest modes index ptr
-      read(io_units_bfmdump(1)) z%id_im_
+      read(io_units_bfmdump(__iun_dump)) z%id_im_
 
 
 #ifndef BSA_USE_POD_DATA_CACHING
@@ -207,7 +202,7 @@ contains
       ! read actual BFM dumped data
       ! NOTE: in second dimension, nj leading over ni
       !       laydown.
-      read(io_units_bfmdump(1)) bfm_undump(:, 1 : zNp)
+      read(io_units_bfmdump(__iun_dump)) bfm_undump(:, 1 : zNp)
 #endif
    end subroutine UndumpZone
 
