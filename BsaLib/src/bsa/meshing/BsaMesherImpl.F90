@@ -1454,9 +1454,6 @@ contains
 #endif
       endif
 
-      do izone_ = 1, n_threads
-         print *, io_units_bfmdump(izone_)
-      enddo
 
       call print_pre_post_mesh_header('POST-MESH')
       print '(1x, 2a, i3, a /)', INFOMSG, &
