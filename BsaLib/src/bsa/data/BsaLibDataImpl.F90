@@ -133,7 +133,9 @@ contains
    module subroutine bsa_Abort(emsg)
       character(len = *), intent(in), optional :: emsg
 
-      if (present(emsg)) print '(/ 1x, 2a/)', ERRMSG, emsg
+      if (present(emsg)) then
+         print '(/ 1x, 2a/)', ERRMSG, emsg
+      endif
 
       call cleanBSAData_() ! free memory before halting
       if (BSA_AT_ERROR_ABORT == error_hand_mode_) then
