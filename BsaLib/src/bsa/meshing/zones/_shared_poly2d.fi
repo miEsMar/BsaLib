@@ -31,11 +31,7 @@
 
 
 !> Zone computation (pre-meshing phase).
-__mod_sub_compute subroutine __sub_name_compute(this &
-#ifdef BSA_USE_OPTIMISED_OMP
-   , bfm &
-#endif
-& )
+__mod_sub_compute subroutine __sub_name_compute(this, bfm)
 #ifdef _OPENMP
       !$ use omp_lib, only: omp_get_thread_num
 #endif
@@ -47,11 +43,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 #ifndef BSA_USE_POD_DATA_CACHING
       , dimM_bisp_, msh_bfmpts_pre_    &
 #endif
-#ifndef BSA_USE_OPTIMISED_OMP
-      , msh_NZones   &
-#endif
       , do_export_POD_info_, do_export_POD_trunc_
-
 #ifdef __triang_zone__
    use BsaLib_MPoint, only: MPoint_t
 #endif
@@ -79,9 +71,8 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 #endif
 
 
-   block
 #ifndef BSA_USE_POD_DATA_CACHING
-
+   block
 ! === Common declarations
       integer(int32)   :: i, j
       integer(int32)   :: i_bfm, zNp
@@ -120,7 +111,6 @@ __mod_sub_compute subroutine __sub_name_compute(this &
       Np_m1 = Np_m1 - 1
       Nj_m1 = Np_m1
 
-
       ! get unary delta freq increments in both I and J directions
       ! get (full) deltas in straight directions
       df_CA  = getPointsDistance(this%Cpt_, this%Apt_) ! base J
@@ -133,7 +123,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
       dfIi = dfIi * df_CST
       dfIj = dfIj * df_CST
 
-# else
+# else ! is a rect zone
 
       call this%getUnaryDeltas(dfIi, dfIj, dfJi, dfJj)
 
@@ -143,10 +133,8 @@ __mod_sub_compute subroutine __sub_name_compute(this &
       dfJi = dfJi * this%deltaf_J_
       dfJj = dfJj * this%deltaf_J_
 
-
       zNp = this%nj_ * this%ni_
 # endif  ! __triang_zone__
-
 
 
 # ifdef __compute_computes_m3mf
@@ -329,7 +317,6 @@ __mod_sub_compute subroutine __sub_name_compute(this &
          enddo
 
 # ifdef __triang_zone__
-
          ! last line
          fi(1) = fi(1) + dfJi
          fj(1) = fj(1) + dfJj
@@ -339,24 +326,19 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 #   ifdef __compute_computes_m3mf
          intg = intg + bfm(:, i_bfm) * brd_infl
 #   endif
-
 # else ! rect zone
-
 #   ifdef __compute_computes_m3mf
          intg = intg - bfm(:, i_bfm) * brd_infl
 #   endif
 # endif ! __triang_zone__
       enddo  ! i
 
-
 # ifdef __triang_zone__
       !=======================================================
-      !
       ! LAST COLUMN (B point !!)
       !
       base_fi(1) = base_fi(1) + dfIi
       base_fj(1) = base_fj(1) + dfIj
-
 
 #  ifdef __compute_validate_zone_layout
       pt = MPoint_t(base_fi(1), base_fj(1))
@@ -369,8 +351,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 #  ifdef __compute_computes_m3mf
       intg = intg + bfm(:, i_bfm) * vtx_infl_t
 #  endif
-# endif ! __triang_zone__   defined
-
+# endif ! __triang_zone__ last column (B point)
 
 # ifdef __compute_validate_zone_layout
       if (i_bfm /= zNp) then
@@ -378,7 +359,6 @@ __mod_sub_compute subroutine __sub_name_compute(this &
          call bsa_Abort('"i_bfm" does not equal tot N of zone''s points.')
       endif
 # endif
-
 
 # ifndef __triang_zone__
 #  ifdef __compute_computes_m3mf
@@ -388,54 +368,20 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 #  endif
 # endif
 
-# ifdef __dump_needs_sync
-      !$omp critical
-# endif
 # ifdef __compute_computes_m3mf
-      m3mf_msh_ptr_   = m3mf_msh_ptr_ + (intg * settings%i_bisp_sym_) ! update main integral
-
-#  ifdef __local_debug_write__
-      iun = iun + 1
-      write(iun, '(  (g) )') 0
-      write(iun, '(  (g) )') this%rot_ / CST_PIGREC * 180._bsa_real_t
-      write(iun, '( *(g, 2x) )') dfIi, dfIj
-      write(iun, '( *(g, 2x) )') fi_v_save_
-      write(iun, '( *(g, 2x) )') dfJi, dfJj
-      write(iun, '( *(g, 2x) )') fj_v_save_
-      block
-         integer :: i_
-         do i_ = 1, zNp
-            write(iun, '( *(g, 2x) )')  bfm(:, i_)
-         enddo
-      end block
-      deallocate(fi_v_save_)
-      deallocate(fj_v_save_)
-#  endif ! __local_debug_write__
-# endif ! __compute_computes_m3mf
-
-# ifndef BSA_USE_OPTIMISED_OMP
-      msh_NZones      = msh_NZones + 1          ! update n. of zones count
-      msh_bfmpts_pre_ = msh_bfmpts_pre_ + zNp   ! update tot num of meshing points
-
-      ! eventually, update zone with max N of points
-      if (zNp > msh_max_zone_NPts) msh_max_zone_NPts = zNp
+      !$omp critical
+      m3mf_msh_ptr_ = m3mf_msh_ptr_ + (intg * settings%i_bisp_sym_) ! update main integral
+      !$omp end critical
 # endif
 
 # ifdef __compute_computes_m3mf
       if (allocated(intg)) deallocate(intg)
 # endif
-
-#else  ! BSA_USE_POD_DATA_CACHING  defined
-
-# ifdef __dump_needs_sync
-      !$omp critical
-# endif
-#endif
-      call DumpZone(this, bfm)      ! dump zone info
-#ifdef __dump_needs_sync
-      !$omp end critical
-#endif
    end block
+#endif ! BSA_USE_OPTIMISED_OMP not defined
+
+   ! NOTE: no need to sync, since everyone writes to its unit
+   call DumpZone(this, bfm)
 
 #ifndef __triang_zone__
    ! NOTE: reset them to 0 for ensuring next zone correct setup
@@ -443,13 +389,21 @@ __mod_sub_compute subroutine __sub_name_compute(this &
    this%refmts_set_ = .false.
    this%deltas_set_ = .false.
 #endif
-#ifndef BSA_USE_OPTIMISED_OMP
-   if (allocated(bfm)) deallocate(bfm)
-#endif
 end subroutine __sub_name_compute
 
 
 
+
+
+
+! #if (defined(BSA_USE_POD_DATA_CACHING)) || (defined(__interp_computes_m3mf))
+! #  define __local_debug_write__
+! #endif
+#ifndef BSA_USE_POD_DATA_CACHING
+# ifdef __local_debug_write__
+#  define __local_freqs_save
+# endif
+#endif
 
 
 
@@ -476,10 +430,9 @@ end subroutine __sub_name_compute
       real(bsa_real_t), pointer, intent(in) :: bfm_undump_ptr(:, :)
       class(*),         pointer, intent(in) :: pdata
 
+
       real(bsa_real_t), pointer :: bfm_undump_Local_ptr(:, :) => null()
-#ifndef BSA_USE_OPTIMISED_OMP
-      class(*), pointer :: pdata_ptr => null()
-#endif
+
 
       type(MPolicy_t) :: pol
 #ifdef __triang_zone__
@@ -503,6 +456,7 @@ end subroutine __sub_name_compute
 #ifdef __triang_zone__
       real(bsa_real_t)        :: df_cst, df_diag_old, df_diag_bfm_ref
       real(bsa_real_t)        :: df_diag_brm_interp, dw_cst, dfJ_oldtmp
+
 #  define __vtx_infl_r  vtx_infl
 #  define __brd_infl_r  brd_infl
 #  define __ctr_infl_r  ctr_infl
@@ -531,16 +485,14 @@ end subroutine __sub_name_compute
       real(bsa_real_t) :: fi_baseptI, fj_baseptI
       real(bsa_real_t), target  :: fi(1), fj(1), fi_baseptJ(1), fj_baseptJ(1)
       real(bsa_real_t), pointer :: fi_ptr(:) => null(), fj_ptr(:) => null()
-#ifdef __interp_use_new_proc
       real(bsa_real_t), allocatable :: fi_v_(:), fj_v_(:)
-# ifdef BSA_USE_POD_DATA_CACHING
+#ifdef BSA_USE_POD_DATA_CACHING
       real(bsa_real_t), allocatable, target :: bfm_undump(:, :)
       integer(int32) :: i_bfm
-#   ifdef __triang_zone__
+#  ifdef __triang_zone__
       integer(int32) :: i_bfm_offs
-#   endif
-# endif
-#endif ! __interp_use_new_proc
+#  endif
+#endif
 
       real(bsa_real_t), allocatable :: bfm_new_left(:, :), bfm_new_right(:, :)
       real(bsa_real_t), allocatable :: bfm_interp(:, :)
@@ -568,10 +520,6 @@ end subroutine __sub_name_compute
 #endif  ! __interp_computes_m3mf
 
 
-! #if (defined(BSA_USE_POD_DATA_CACHING)) || (defined(__interp_computes_m3mf))
-! #  define __local_debug_write__
-! #endif
-
 #ifdef __local_debug_write__
       integer       :: ifi, ifj
       integer, save :: iun = 430000
@@ -582,6 +530,7 @@ end subroutine __sub_name_compute
       real(bsa_real_t)              :: intg(dimM_bisp_)
 
 
+#if 0
 
       pol = this%policy() ! get zone's policy
 
@@ -881,6 +830,8 @@ end subroutine __sub_name_compute
       end block
 
 
+! NOTE: this is needed since we'd need sync when writing to shared file.
+!       Hence, do it once at the end.
 #if (defined(BSA_USE_OPTIMISED_OMP))
 # define __FREQ_I_  fi_v_(i_brm) = fi_ptr(1)
 # define __FREQ_J_  fj_v_(i_brm) = fj_ptr(1)
@@ -888,10 +839,11 @@ end subroutine __sub_name_compute
 # define __FREQ_J_shift_  fj_v_(i_brm_shift) = fj_ptr(1)
 #endif
 
+
       bfm_undump_Local_ptr => bfm_undump_ptr
 
-#ifdef __interp_use_new_proc
-# ifdef BSA_USE_POD_DATA_CACHING
+
+#ifdef BSA_USE_POD_DATA_CACHING
 
       ! *********************************************************
       ! BUG:  NOTE, this works only if rot=={0, 90, 180, 270} !!!
@@ -957,11 +909,10 @@ end subroutine __sub_name_compute
       allocate(fj_v_(nPtsPost), stat=ist)
       if (ist /= 0) call bsa_Abort("Error allocating ""fj"" in interpolating RZ.")
       fj_v_ = 0._bsa_real_t
-#endif  ! __interp_use_new_proc
 
 
 #ifdef __local_debug_write__
-      if (.not. allocated(fi_v_save_)) then 
+      if (.not. allocated(fi_v_save_)) then
          allocate(fi_v_save_(ni_bfm_ref_), stat=ist)
          if (ist /= 0) call bsa_Abort("Error allocating ""fi"" in interpolating RZ.")
          fi_v_save_ = 0._bsa_real_t
@@ -986,12 +937,13 @@ end subroutine __sub_name_compute
       endif
 
 
-      ! before starting, interpolate very first column
-      ! along J dir, to get new mesh from old
-      ! Then for all the others, it will be done inside
-      ! the loop over the NI (old) points of the old mesh.
-      ! NOTE: integrate as well.
-
+! **************************************************
+! Before starting, interpolate very first column
+! along J dir, to get new mesh from old
+! Then for all the others, it will be done inside
+! the loop over the NI (old) points of the old mesh.
+! NOTE: integrate as well for performance.
+! **************************************************
 
       ! init point vertex
       i_brm = 1
@@ -1000,7 +952,7 @@ end subroutine __sub_name_compute
       fi_baseptJ(1) = fi(1)
       fj_baseptJ(1) = fj(1)
 
-#if (!(defined(BSA_USE_POD_DATA_CACHING))) && (defined(__local_debug_write__))
+#ifdef __local_freqs_save
       ifj = 1
       fj_v_save_(1) = fj_baseptJ(1)
 
@@ -1033,7 +985,6 @@ end subroutine __sub_name_compute
 
 
       do pJhead = 2, this%nj_ ! loop on all OLD BFM saved points (J-dir)
-
          do i_bfm_ref_j = 1, n_pts_bfm_ref_j_ ! loop on all REF BFM pts between 2 old.
 
             ! compute head
@@ -1078,7 +1029,7 @@ end subroutine __sub_name_compute
             fi(1) = fi(1) + dfJi_brm_interp
             fj(1) = fj(1) + dfJj_brm_interp
 
-#if (!(defined(BSA_USE_POD_DATA_CACHING))) && (defined(__local_debug_write__))
+#ifdef __local_freqs_save
             ifj = ifj + 1
             fj_v_save_(ifj) = fj_baseptJ(1)
 #endif
@@ -1106,9 +1057,9 @@ end subroutine __sub_name_compute
          enddo ! n. of BFM refinement points (between 2 old BFM points)
 
 
-         !
-         ! next head is an OLD BFM (next) mesh point!
-         !
+         ! ******************************************
+         ! Next head is an OLD BFM (next) mesh point!
+         ! ******************************************
 #ifdef BSA_USE_POD_DATA_CACHING
          i_bfm         = i_bfm + 1
          bfmhead(:, 1) = bfm_undump_Local_ptr(:, i_bfm)
@@ -1119,16 +1070,16 @@ end subroutine __sub_name_compute
          intg_bfm      = intg_bfm + bfmhead(:, 1) * __brd_infl_r_bfm
 #endif
 
-
 #ifdef __compute_validate_zone_layout
-         if (n_pts_bfm_ref_j_ > 0) then 
-            if (abs((fi_baseptI + (dfJi_bfm_lv0_*(pJhead-1))) - (fi_baseptJ(1) + dfJi_bfm_ref_)) > MACHINE_PRECISION .or. &
-                  abs((fj_baseptI + (dfJj_bfm_lv0_*(pJhead-1))) - (fj_baseptJ(1) + dfJj_bfm_ref_)) > MACHINE_PRECISION) &
-                     call bsa_Abort(&
-                        'BAD (2): fi or fj at the end of a BFM ref segment does not coincide with reference.')
+         if (n_pts_bfm_ref_j_ > 0) then
+            if (abs((fi_baseptI + (dfJi_bfm_lv0_*(pJhead-1))) - (fi_baseptJ(1) + dfJi_bfm_ref_)) > MACHINE_PRECISION &
+                  .or. &
+                  abs((fj_baseptI + (dfJj_bfm_lv0_*(pJhead-1))) - (fj_baseptJ(1) + dfJj_bfm_ref_)) > MACHINE_PRECISION) then
+               call bsa_Abort(&
+                  'BAD (2): fi or fj at the end of a BFM ref segment does not coincide with reference.')
+            endif
          endif
 #endif
-
 
          dfJhead = dfJ_bfm_ref_
          dfJtail = 0._bsa_real_t
@@ -1155,7 +1106,9 @@ end subroutine __sub_name_compute
             intg = intg + brm(:, i_brm) * __brd_infl_r
          enddo ! pJtail = 1, nipJ
 
+         ! **********************************************
          ! here, treat head, TAIL==HEAD (head - old mesh)
+         ! **********************************************
          fi(1) = fi(1) + dfJi_brm_interp
          fj(1) = fj(1) + dfJj_brm_interp
 
@@ -1163,12 +1116,13 @@ end subroutine __sub_name_compute
          fi_baseptJ(1) = fi_baseptJ(1) + dfJi_bfm_ref_
          fj_baseptJ(1) = fj_baseptJ(1) + dfJj_bfm_ref_
          if (abs(fi_baseptJ(1) - fi(1)) > MACHINE_PRECISION .or. &
-               abs(fj_baseptJ(1) - fj(1)) > MACHINE_PRECISION) &
-                  call bsa_Abort(&
-                     'BAD (3): fi or fj at the end of a BFM ref segment does not coincide with reference.')
+               abs(fj_baseptJ(1) - fj(1)) > MACHINE_PRECISION) then
+            call bsa_Abort(&
+               'BAD (3): fi or fj at the end of a BFM ref segment does not coincide with reference.')
+         endif
 #endif
 
-#if (!(defined(BSA_USE_POD_DATA_CACHING))) && (defined(__local_debug_write__))
+#ifdef __local_freqs_save
          ifj = ifj + 1
          fj_v_save_(ifj) = fj(1)
 #endif
@@ -1203,21 +1157,20 @@ end subroutine __sub_name_compute
 
 
 
-
-
       ! **********************************************************
       ! **********************************************************
       !          here we start moving along I direction
       ! **********************************************************
       ! **********************************************************
-      !
+
       i_bfm_old = this%nj_
       do pIcurr = 2, this%ni_ ! loop on all OLD BFM infl lines (I-dir)
 
-         ! before doing any computation,
-         ! we need to interpolate BFM along J
+         ! ****************************************************************
+         ! Before doing any computation, we need to interpolate BFM along J
          ! at new CURRENT (I) infl line (including ref infl lines)
          ! NOTE: once we go through, integrate as well.
+         ! ****************************************************************
 
          do i_bfm_ref_i = 1, n_pts_bfm_ref_i_ ! loop on all REF BFM pts between 2 old (I-dir)
 
@@ -1252,12 +1205,10 @@ end subroutine __sub_name_compute
 #endif
             bfm_new_right(:, 1) = bfmtail(:, 1)
 
-
-#if (!(defined(BSA_USE_POD_DATA_CACHING))) && (defined(__local_debug_write__))    
+#ifdef __local_freqs_save
             ifi = ifi + 1
             fi_v_save_(ifi) = fi_baseptJ(1)
 #endif
-
 
             i_brm_shift = i_brm_shift + 1
             call getBRM_msh(brm(:, i_brm_shift:i_brm_shift), fi, fj, bfm_new_right(:, 1:1))
@@ -1327,9 +1278,10 @@ end subroutine __sub_name_compute
 
 #if defined(__triang_zone__) && defined(__compute_validate_zone_layout)
                   if (abs(fi(1) - fi_baseptJ(1)) > MACHINE_PRECISION .or. &
-                     abs(fj(1) - fj_baseptJ(1)) > MACHINE_PRECISION) &
-                        call bsa_Abort(&
-                           'BAD (4-t): fi or fj at the end of a BFM ref segment does not coincide..')
+                        abs(fj(1) - fj_baseptJ(1)) > MACHINE_PRECISION) then
+                     call bsa_Abort(&
+                        'BAD (4-t): fi or fj at the end of a BFM ref segment does not coincide..')
+                  endif
 #endif
 
                   i_bfm_interpJ                   = i_bfm_interpJ + 1
@@ -1421,7 +1373,7 @@ end subroutine __sub_name_compute
 
 #ifdef __triang_zone__
 
-            !
+            ! ****************************************************
             ! Last segments
             ! I.e. next BFM head (computed) lies on the hypotenuse
             !
@@ -1498,17 +1450,20 @@ end subroutine __sub_name_compute
 #endif  ! __triang_zone__
 
 
-            ! removing excess of very last HEAD, accounted as center, it is BORDER.
+            ! *************************************************************************
+            ! Removing excess of very last HEAD, accounted as center, it is BORDER.
             ! NOTE: even worse for very last HEAD which happens to be End point.
             !       there, it is a VERTEX point.
             !       However, it's the very last element in brm, we can remove it after.
+            ! *************************************************************************
             intg     = intg - brm(:, i_brm_shift) * __brd_infl_t
 #ifdef __interp_computes_m3mf
             intg_bfm = intg_bfm - bfmtail(:, 1) * __brd_infl_t_bfm
 #endif
 
+            ! ******************************************************************
             ! Now INTERPOLATE along I-dir between left and right BFM infl lines.
-            !
+            ! ******************************************************************
             dfIcurr = dfI_bfm_ref_ ! reset I-dir CURR-PREV distances
             dfIprev = 0._bsa_real_t
             do pIprev = 1, nipI ! interp (I-dir) between prev-curr
@@ -1563,10 +1518,8 @@ end subroutine __sub_name_compute
                   intg = intg + brm(:, i_brm) * __ctr_infl_r
                enddo
 
-
 #ifdef __triang_zone__
-
-               !==============================================
+               ! *************************************************
                ! here we have to treat triang shaped zone.
                ! NOTE: tmp head is interpolated along hypotenuse!!
                bfmhead(:, 1) = (&
@@ -1617,38 +1570,24 @@ end subroutine __sub_name_compute
                call write_brm_fptr_(fi_ptr, fj_ptr, brm(:, i_brm:i_brm), pdata_ptr)
 # endif
                intg = intg + brm(:, i_brm) * __vtx_infl_t
-               !==============================================
 
 #else  ! is a RECT zone
 
+               ! *****************************************************************
                ! removing excess from having accounted values at last iter HEAD as
                ! center points (they are BORDER)
                intg = intg - brm(:, i_brm) * __brd_infl_r
 #endif  ! __triang_zone__
             enddo ! pIprev = 1, nipI  (interp points along I dir)
 
-
             ! now update bases along I (CURR now, PREV next iteration!)
             fi_baseptI = fi_baseptI + dfIi_bfm_ref_
             fj_baseptI = fj_baseptI + dfIj_bfm_ref_
 
-
-#ifndef BSA_USE_OPTIMISED_OMP
-            ! Now, we can write actual new BFM I-dir infl line.
-            fi(1) = fi_baseptI
-            fj(1) = fj_baseptI
-            do pIprev = 1, nj
-               i_brm_write_ = i_brm_write_ + 1
-               call write_brm_fptr_(fi_ptr, fj_ptr, brm(:, i_brm_write_:i_brm_write_), pdata_ptr)
-               fi(1) = fi(1) + dfJi_brm_interp
-               fj(1) = fj(1) + dfJj_brm_interp
-            enddo
-#endif
-
             ! moving right, shift infl-lines.
 #ifdef __triang_zone__
 # ifdef BSA_USE_POD_DATA_CACHING
-            i_bfm_offs = i_bfm_offs + 1 
+            i_bfm_offs = i_bfm_offs + 1
             i_bfm      = i_bfm + i_bfm_offs
 # endif
             bfm_new_left(:, 1:njNew_picurr) = bfm_new_right(:, 1:njNew_picurr)
@@ -1661,9 +1600,9 @@ end subroutine __sub_name_compute
 
 
 
-         !
+         ! ********************************************************************
          ! Here, right BFM infl line is one where we have old BFM mesh points !
-         !
+         ! ********************************************************************
 
          ! computing BRM offset from pi_prev and pi_curr J infl lines.
 #ifdef __triang_zone__
@@ -1672,7 +1611,7 @@ end subroutine __sub_name_compute
          do pJhead = 1, nipI
             njNew_tmp   = njNew_tmp - 1
             i_brm_shift = i_brm_shift + njNew_tmp
-         enddo    
+         enddo
 #else
          i_brm_shift  = i_brm + i_brm_offsetJ
 #endif
@@ -1697,7 +1636,7 @@ end subroutine __sub_name_compute
 #endif
          bfm_new_right(:, 1) = bfmtail(:, 1)
 
-#if (!(defined(BSA_USE_POD_DATA_CACHING))) && (defined(__local_debug_write__))   
+#ifdef __local_freqs_save
          ifi = ifi + 1
          fi_v_save_(ifi) = fi_baseptJ(1)
 #endif
@@ -2014,30 +1953,6 @@ end subroutine __sub_name_compute
          fj_baseptI = fj_baseptI + dfIj_bfm_ref_
 
 
-
-#ifndef BSA_USE_OPTIMISED_OMP
-# if defined(__triang_zone__) && defined(__compute_validate_zone_layout)
-         ! BUG: check this condition
-         if (njNew_picurr /= ((njOld - 1) * (nipJ + 1) + 1)) &
-            call bsa_Abort("""njNew_picurr"" does not match computed value.")
-# endif
-
-         ! Now, we can write actual new BFM I-dir infl line.
-         fi(1) = fi_baseptI
-         fj(1) = fj_baseptI
-# ifdef __triang_zone__
-         do pIprev = 1, njNew_picurr
-# else
-         do pIprev = 1, nj
-# endif
-            i_brm_write_ = i_brm_write_ + 1
-            call write_brm_fptr_(fi_ptr, fj_ptr, brm(:, i_brm_write_:i_brm_write_), pdata_ptr)
-            fi(1) = fi(1) + dfJi_brm_interp
-            fj(1) = fj(1) + dfJj_brm_interp
-         enddo
-#endif
-
-
 #ifdef __triang_zone__
 # ifdef BSA_USE_POD_DATA_CACHING
          i_bfm_offs = i_bfm_offs + 1 
@@ -2049,9 +1964,7 @@ end subroutine __sub_name_compute
 #else
          bfm_new_left = bfm_new_right
 #endif
-
       enddo ! pIcurr = 2, this%ni_
-
 
 #ifdef __compute_validate_zone_layout
       if (i_brm /= nPtsPost) then
@@ -2064,10 +1977,8 @@ end subroutine __sub_name_compute
       endif
 #endif ! __compute_validate_zone_layout
 
-
       deallocate(bfm_new_right)
       deallocate(bfm_interp)
-
 
 #ifdef __triang_zone__
       ! removing overestimation for B point
@@ -2099,49 +2010,29 @@ end subroutine __sub_name_compute
 #endif
       m3mr_msh_ptr_ = m3mr_msh_ptr_ + (intg     * settings%i_bisp_sym_) ! update main BRM integral
 
-
-#ifdef __local_debug_write__
-      iun = iun + 1
-      write(iun, '(  (g) )') 1
-      ! write(iun, '(  (g) )') intg_bfm
-      ! write(iun, '(   (a) )') ''
-      ! write(iun, '(  (g) )') m3mf_msh_ptr_
-      write(iun, '(  (g) )') this%rot_ / CST_PIGREC * 180._bsa_real_t
-      write(iun, '( *(g, 2x) )') dfIi_bfm_ref_, dfIj_bfm_ref_
-      write(iun, '( *(g, 2x) )') fi_v_save_
-      write(iun, '( *(g, 2x) )') dfJi_bfm_ref_, dfJj_bfm_ref_
-      write(iun, '( *(g, 2x) )') fj_v_save_
-      do i = 1, ni_bfm_ref_*nj_bfm_ref_
-         write(iun, '( *(g, 2x) )')  bfm_undump_Local_ptr(:, i)
-      enddo
-      deallocate(fi_v_save_)
-      deallocate(fj_v_save_)
-#endif ! __local_debug_write__
-
-
-#if (defined(BSA_USE_OPTIMISED_OMP))
+      ! NOTE: ok, now that we have computed all data, write it to file via callback.
+      !       Need sync access between threads! (that's why we do it like that)
       call write_brm_fptr_(fi_v_, fj_v_, brm, pdata)
-#endif
 
-            ! updating main point counters
+      ! updating main point counters
 #ifdef __triang_zone__
       msh_bfmpts_post_ = msh_bfmpts_post_ + getTriangZoneEquivNPts(ni_bfm_ref_, nj_bfm_ref_)
 #else
       msh_bfmpts_post_ = msh_bfmpts_post_ + ni_bfm_ref_ * nj_bfm_ref_
 #endif
-
       msh_brmpts_post_ = msh_brmpts_post_ + nPtsPost
       !$omp end critical
 
+      ! NOTE: these are here to catch possible memory corruption issues.
       if (allocated(brm))     deallocate(brm)
 #ifndef __triang_zone__
       if (allocated(inter_modes_)) deallocate(inter_modes_)
 #endif
-#ifdef __interp_use_new_proc
       if (allocated(fi_v_))   deallocate(fi_v_)
       if (allocated(fj_v_))   deallocate(fj_v_)
-# ifdef BSA_USE_POD_DATA_CACHING
+#ifdef BSA_USE_POD_DATA_CACHING
       if (allocated(bfm_undump)) deallocate(bfm_undump)
-# endif
+#endif
+
 #endif
    end subroutine

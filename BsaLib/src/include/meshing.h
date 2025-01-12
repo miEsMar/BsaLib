@@ -35,9 +35,5 @@
 # define __compute_computes_m3mf
 #endif
 
-#if (defined(BSA_USE_POD_DATA_CACHING)) || (defined(_OPENMP))
-# define __interp_use_new_proc
-#endif
-
 
 
