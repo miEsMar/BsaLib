@@ -481,13 +481,8 @@ contains
             , action=IO_ACTION_WRITE )
 
          allocate(do_export_POD_trunc_(max_num_omp_threads_))
-         do_export_POD_trunc_    = .false.
+         do_export_POD_trunc_(:) = .false.
          do_export_POD_trunc_(1) = .true.  ! <-- NO OMP parall region in BKG zone regardless.
-
-#ifdef BSA_DEBUG
-         print '(1x, 2a, i5)', INFOMSG, &
-            "Max number of threads available:  ", max_num_omp_threads_
-#endif
       endif
 
 #if (defined(BSA_USES_ZONES_ARRAY))
@@ -702,6 +697,7 @@ contains
                endif
 ! #endif
 
+#ifndef BSA_USE_OPTIMISED_OMP
                if (do_export_POD_info_) then
                   if (idir == 1 .or. idir == 3) then
                      do_export_POD_trunc_(__export_POD_trunc_id__) = .true.
@@ -709,6 +705,7 @@ contains
                      do_export_POD_trunc_(__export_POD_trunc_id__) = .false.
                   endif
                endif
+#endif
 
 #if (defined(BSA_USES_ZONES_ARRAY))
                meshing_zones__(zones_offset__ + (idir-1)*NLimsP1 + ilim) = rz
@@ -737,6 +734,7 @@ contains
             endif
 ! #endif
 
+#ifndef BSA_USE_OPTIMISED_OMP
             if (do_export_POD_info_) then
                if (idir == 1 .or. idir == 3) then
                   do_export_POD_trunc_(__export_POD_trunc_id__) = .true.
@@ -744,6 +742,7 @@ contains
                   do_export_POD_trunc_(__export_POD_trunc_id__) = .false.
                endif
             endif
+#endif
 
 #if (defined(BSA_USES_ZONES_ARRAY))
             meshing_zones__(zones_offset__ + (idir-1)*NLimsP1 + NLimsP1) = rz
@@ -776,8 +775,10 @@ contains
 #endif
 
          ! From now on, no need for this anymore.
+         ! BUG: actually, see how to handle it if 
+         !      BSA_USE_OPTIMISED_OMP is defined..
          if (do_export_POD_info_) then
-            do_export_POD_trunc_ = .false.
+            do_export_POD_trunc_(:) = .false.
          endif
 
 
@@ -1487,12 +1488,15 @@ contains
 
       ! NOTE: no need to check for EOF. We know how many zones we have dumped.
       !
+! #define __disable_omp
+#ifndef __disable_omp
       !$omp parallel do &
+      !$omp   default(private), &
       !$omp   firstprivate(export_data_base_local_, export_data_base_ptr_), &
 #ifdef __postmesh_use_per_thread_bfmundump
       !$omp   firstprivate(bfm_undump),     &
 #endif
-      !$omp   private(z, rz, tz, izone_id), &
+      !$omp   private(z, rz, tz, izone_, izone_id), &
       !$omp   shared(struct_data, wd, settings, do_export_base_   &
 #ifndef __GFORTRAN__
       !$omp          , MZone_ID                                   &
@@ -1504,16 +1508,17 @@ contains
       !$omp          , msh_ZoneLimsInterestModes, do_validate_deltas_         &
       !$omp          , msh_bfmpts_post_, msh_brmpts_post_, io_units_bfmdump   &
 #ifdef BSA_USE_OPTIMISED_OMP
-      !$omp          , meshing_zones__ &
+      !$omp          , meshing_zones__, m3mf_msh_ptr_       &
 #endif
       !$omp          , is_visual_, is_brn_export_, visual_idx_                &
       !$omp          , dimM_bisp_, getBFM_msh, getBRM_msh, write_brm_fptr_),  &
       !$omp   num_threads(n_threads)
+#endif
       do izone_ = 2, nzones
 
 #ifdef BSA_USE_OPTIMISED_OMP
          call meshing_zones__(izone_)%compute(bfm_undump)
-         ! call meshing_zones__(izone_)%interpolate(bfm_undump, export_data_base_ptr_)
+         call meshing_zones__(izone_)%interpolate(bfm_undump, export_data_base_ptr_)
 #else
          !$omp critical
          read(io_units_bfmdump(1)) izone_id   ! fetch zone type ID
@@ -1539,7 +1544,9 @@ contains
          call z%interpolate(bfm_undump, export_data_base_ptr_)
 #endif
       enddo ! nZones
+#ifndef __disable_omp
       !$omp end parallel do
+#endif
 
       99 continue
 #ifndef BSA_USE_POD_DATA_CACHING

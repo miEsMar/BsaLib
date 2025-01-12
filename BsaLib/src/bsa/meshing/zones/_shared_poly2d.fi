@@ -41,15 +41,16 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 #endif
    use BsaLib_Data, only: &
       getBFM_msh                 &
-#ifdef _BSA_M3MF_ONLY_PREMESH
+#ifdef __compute_computes_m3mf
       , settings, m3mf_msh_ptr_  &
 #endif
-      , do_export_POD_info_      &
-      , do_export_POD_trunc_     &
 #ifndef BSA_USE_POD_DATA_CACHING
-      , dimM_bisp_, msh_bfmpts_pre_ &
+      , dimM_bisp_, msh_bfmpts_pre_    &
 #endif
-      , msh_NZones
+#ifndef BSA_USE_OPTIMISED_OMP
+      , msh_NZones   &
+#endif
+      , do_export_POD_info_, do_export_POD_trunc_
 
 #ifdef __triang_zone__
    use BsaLib_MPoint, only: MPoint_t
@@ -84,11 +85,11 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 ! === Common declarations
       integer(int32)   :: i, j
       integer(int32)   :: i_bfm, zNp
-      real(bsa_real_t) :: ctr_infl, brd_infl, vtx_infl
       real(bsa_real_t) :: dfIi, dfIj, dfJi, dfJj
       real(bsa_real_t), dimension(1), target :: base_fi, base_fj, fi, fj
 
-# ifdef _BSA_M3MF_ONLY_PREMESH
+# ifdef __compute_computes_m3mf
+      real(bsa_real_t) :: ctr_infl, brd_infl, vtx_infl
 #   ifdef __triang_zone__
       real(bsa_real_t) :: dw, vtx_infl_t
 #   else
@@ -101,7 +102,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
       integer(int32), save  :: iun = 430000
       real(bsa_real_t), allocatable :: fi_v_save_(:), fj_v_save_(:)
 #   endif
-# endif  ! _BSA_M3MF_ONLY_PREMESH
+# endif  ! __compute_computes_m3mf
 ! === Common declarations
 
 
@@ -148,7 +149,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 
 
 
-# ifdef _BSA_M3MF_ONLY_PREMESH
+# ifdef __compute_computes_m3mf
 #   ifdef __triang_zone__
       dw = df_CST * CST_PIt2
       ctr_infl = dw * dw
@@ -168,7 +169,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
       allocate(fi_v_save_(this%ni_))
       allocate(fj_v_save_(this%nj_))
 #   endif
-# endif ! _BSA_M3MF_ONLY_PREMESH
+# endif ! __compute_computes_m3mf
 
 
       ! allocate memory
@@ -226,7 +227,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
       fi(1) = base_fi(1)
       fj(1) = base_fj(1)
       call getBFM_msh(bfm(:, 1:1), fi, fj)
-# ifdef _BSA_M3MF_ONLY_PREMESH
+# ifdef __compute_computes_m3mf
       intg = bfm(:, 1) * vtx_infl
 #   ifdef __local_debug_write__
       fi_v_save_(1) = fi(1)
@@ -245,7 +246,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
          fj(1) = fj(1) + dfJj
 
          call getBFM_msh(bfm(:, j:j), fi, fj)
-# ifdef _BSA_M3MF_ONLY_PREMESH
+# ifdef __compute_computes_m3mf
          intg = intg + bfm(:, j) * brd_infl
 #   ifdef __local_debug_write__
          fj_v_save_(j) = fj(1)
@@ -265,7 +266,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 
       i_bfm = j
       call getBFM_msh(bfm(:, i_bfm:i_bfm), fi, fj)
-#  ifdef _BSA_M3MF_ONLY_PREMESH
+#  ifdef __compute_computes_m3mf
       intg = intg + bfm(:, i_bfm) * vtx_infl_t
 #  endif
 # endif ! __triang_zone__  defined
@@ -273,7 +274,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 
       ! removing excess integral
       i_bfm = this%nj_
-# ifdef _BSA_M3MF_ONLY_PREMESH
+# ifdef __compute_computes_m3mf
       intg = intg - bfm(:, i_bfm) * vtx_infl
 # endif
 
@@ -303,12 +304,12 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 
          i_bfm = i_bfm + 1
          call getBFM_msh(bfm(:, i_bfm:i_bfm), fi, fj)
-# ifdef _BSA_M3MF_ONLY_PREMESH
+# ifdef __compute_computes_m3mf
          intg = intg + bfm(:, i_bfm) * brd_infl
 #   ifdef __local_debug_write__
          fi_v_save_(i) = fi(1)
 #   endif
-# endif ! _BSA_M3MF_ONLY_PREMESH
+# endif ! __compute_computes_m3mf
 
          ! internal lines
 # ifdef __triang_zone__
@@ -322,7 +323,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 
             i_bfm = i_bfm + 1
             call getBFM_msh(bfm(:, i_bfm:i_bfm), fi, fj)
-# ifdef _BSA_M3MF_ONLY_PREMESH
+# ifdef __compute_computes_m3mf
             intg = intg + bfm(:, i_bfm) * ctr_infl
 # endif
          enddo
@@ -335,13 +336,13 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 
          i_bfm = i_bfm + 1
          call getBFM_msh(bfm(:, i_bfm:i_bfm), fi, fj)
-#   ifdef _BSA_M3MF_ONLY_PREMESH
+#   ifdef __compute_computes_m3mf
          intg = intg + bfm(:, i_bfm) * brd_infl
 #   endif
 
 # else ! rect zone
 
-#   ifdef _BSA_M3MF_ONLY_PREMESH
+#   ifdef __compute_computes_m3mf
          intg = intg - bfm(:, i_bfm) * brd_infl
 #   endif
 # endif ! __triang_zone__
@@ -365,7 +366,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 
       i_bfm = i_bfm + 1
       call getBFM_msh(bfm(:, i_bfm:i_bfm), base_fi, base_fj)
-#  ifdef _BSA_M3MF_ONLY_PREMESH
+#  ifdef __compute_computes_m3mf
       intg = intg + bfm(:, i_bfm) * vtx_infl_t
 #  endif
 # endif ! __triang_zone__   defined
@@ -380,7 +381,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 
 
 # ifndef __triang_zone__
-#  ifdef _BSA_M3MF_ONLY_PREMESH
+#  ifdef __compute_computes_m3mf
       intg = intg - bfm(:, i_bfm - this%nj_ + 1) * vtx_infl
       intg = intg - sum(bfm(:, i_bfm - this%nj_ + 1 : i_bfm-1) * brd_infl, dim=2)
       intg = intg - bfm(:, i_bfm) * vtx_infl
@@ -390,7 +391,7 @@ __mod_sub_compute subroutine __sub_name_compute(this &
 # ifdef __dump_needs_sync
       !$omp critical
 # endif
-# ifdef _BSA_M3MF_ONLY_PREMESH
+# ifdef __compute_computes_m3mf
       m3mf_msh_ptr_   = m3mf_msh_ptr_ + (intg * settings%i_bisp_sym_) ! update main integral
 
 #  ifdef __local_debug_write__
@@ -410,14 +411,17 @@ __mod_sub_compute subroutine __sub_name_compute(this &
       deallocate(fi_v_save_)
       deallocate(fj_v_save_)
 #  endif ! __local_debug_write__
-# endif ! _BSA_M3MF_ONLY_PREMESH
+# endif ! __compute_computes_m3mf
 
+# ifndef BSA_USE_OPTIMISED_OMP
+      msh_NZones      = msh_NZones + 1          ! update n. of zones count
       msh_bfmpts_pre_ = msh_bfmpts_pre_ + zNp   ! update tot num of meshing points
 
       ! eventually, update zone with max N of points
       if (zNp > msh_max_zone_NPts) msh_max_zone_NPts = zNp
+# endif
 
-# ifdef _BSA_M3MF_ONLY_PREMESH
+# ifdef __compute_computes_m3mf
       if (allocated(intg)) deallocate(intg)
 # endif
 
@@ -427,7 +431,6 @@ __mod_sub_compute subroutine __sub_name_compute(this &
       !$omp critical
 # endif
 #endif
-      msh_NZones = msh_NZones + 1   ! update n. of zones count
       call DumpZone(this, bfm)      ! dump zone info
 #ifdef __dump_needs_sync
       !$omp end critical
@@ -456,7 +459,7 @@ end subroutine __sub_name_compute
       !! including MultiLevel-Refinement for BFM data.
       use BsaLib_Data, only: &
          dimM_bisp_, getBFM_msh, getBRM_msh        &
-#ifdef __interp_updates_m3mf
+#ifdef __interp_computes_m3mf
          , m3mf_msh_ptr_            &
 #endif
          , m3mr_msh_ptr_, settings  &
@@ -464,8 +467,7 @@ end subroutine __sub_name_compute
          , BsaExportBaseData_t, do_export_brm_, is_visual_  &
 #ifndef __triang_zone__
          , do_validate_deltas_, msh_ZoneLimsInterestModes, peak_exts_ &
-         , CODE_PRE_PEAK_OK, CODE_PRE_PEAK_KO &
-         , bkg_peakw_ &
+         , CODE_PRE_PEAK_OK, bkg_peakw_ &
 #endif
          , write_brm_fptr_
       use BsaLib_MPolicy, only: MPolicy_t
@@ -475,7 +477,9 @@ end subroutine __sub_name_compute
       class(*),         pointer, intent(in) :: pdata
 
       real(bsa_real_t), pointer :: bfm_undump_Local_ptr(:, :) => null()
+#ifndef BSA_USE_OPTIMISED_OMP
       class(*), pointer :: pdata_ptr => null()
+#endif
 
       type(MPolicy_t) :: pol
 #ifdef __triang_zone__
@@ -544,7 +548,7 @@ end subroutine __sub_name_compute
       real(bsa_real_t) :: dfJtail, dfJhead, dfIcurr, dfIprev
       real(bsa_real_t) :: bfmtail(dimM_bisp_, 1), bfmhead(dimM_bisp_, 1)
 
-#ifdef __interp_updates_m3mf
+#ifdef __interp_computes_m3mf
       real(bsa_real_t) :: intg_bfm(dimM_bisp_)
       real(bsa_real_t) :: vtx_infl_bfm, brd_infl_bfm, ctr_infl_bfm
 
@@ -561,10 +565,10 @@ end subroutine __sub_name_compute
 #   define __brd_infl_t_bfm  brd_infl_bfm
 #   define __vtx_infl_t_bfm  vtx_infl_bfm
 # endif
-#endif  ! __interp_updates_m3mf
+#endif  ! __interp_computes_m3mf
 
 
-! #if (defined(BSA_USE_POD_DATA_CACHING)) || (defined(__interp_updates_m3mf))
+! #if (defined(BSA_USE_POD_DATA_CACHING)) || (defined(__interp_computes_m3mf))
 ! #  define __local_debug_write__
 ! #endif
 
@@ -643,7 +647,7 @@ end subroutine __sub_name_compute
       dfJ_brm_interp_ = dfJ_bfm_ref_ / interp_fact
 
 
-# ifdef __interp_updates_m3mf
+# ifdef __interp_computes_m3mf
       ! influence areas for BRM integration
       dw_cst       = dfI_bfm_ref_ * CST_PIt2
       ctr_infl_bfm = dw_cst * dw_cst
@@ -687,11 +691,7 @@ end subroutine __sub_name_compute
 
       nPtsPost = getTriangZoneEquivNPts(ni, nj)
 
-
-
 #else  ! is a RECT zone
-
-
 
       ! get original (pre-meshing) deltas (LEVEL 0)
       ! NOTE: keep them in memory unchanged since they might serve later on.
@@ -794,7 +794,7 @@ end subroutine __sub_name_compute
       dfJ_brm_interp_ = dfJ_bfm_ref_ / pol%brm_pol_%j_fct_
 
 
-# ifdef __interp_updates_m3mf
+# ifdef __interp_computes_m3mf
       ! compute BFM (refined) influence areas for integration
       dwI = dfI_bfm_ref_ * CST_PIt2
       dwJ = dfJ_bfm_ref_ * CST_PIt2
@@ -907,16 +907,12 @@ end subroutine __sub_name_compute
 
       ! TODO: maybe use two concurrent threads ?? 
       !       (we might already be in a threaded env)
-#ifdef _OPENMP
       !$omp simd
-#endif
       do i = 0, ni_bfm_ref_-1
          fi_v_(i+1) = i * dfI_bfm_ref_
       enddo
 
-#ifdef _OPENMP
       !$omp simd
-#endif
       do i = 0, nj_bfm_ref_-1
          fj_v_(i+1) = i * dfJ_bfm_ref_
       enddo
@@ -935,8 +931,10 @@ end subroutine __sub_name_compute
 
       ! Compute BFM at all (refined) meshing points
       if (.not. allocated(bfm_undump)) then
-         allocate(bfm_undump( dimM_bisp_, ni_bfm_ref_ * nj_bfm_ref_ ), stat=ist)
-         if (ist /= 0) call bsa_Abort("Error allocating ""bfm_undump"" in interpolating RZ.")
+         allocate(bfm_undump(dimM_bisp_, ni_bfm_ref_ * nj_bfm_ref_), stat=ist)
+         if (ist /= 0) then
+            call bsa_Abort("Error allocating ""bfm_undump"" in interpolating RZ.")
+         endif
       endif
       call getBFM_msh(bfm_undump, fi_v_, fj_v_)
 
@@ -1017,7 +1015,7 @@ end subroutine __sub_name_compute
       i_bfm              = 1
 #endif
       bfmtail            = bfm_undump_Local_ptr(:, 1:1)
-#ifdef __interp_updates_m3mf
+#ifdef __interp_computes_m3mf
       intg_bfm           = bfmtail(:, 1) * __vtx_infl_r_bfm
 #endif
       bfm_new_left(:, 1) = bfmtail(:, 1)
@@ -1047,7 +1045,7 @@ end subroutine __sub_name_compute
 #else
              call getBFM_msh(bfmhead, fi_baseptJ, fj_baseptJ)
 #endif
-#ifdef __interp_updates_m3mf
+#ifdef __interp_computes_m3mf
             intg_bfm   = intg_bfm + bfmhead(:, 1) * __brd_infl_r_bfm
 #endif
 
@@ -1117,7 +1115,7 @@ end subroutine __sub_name_compute
 #else
          bfmhead(:, 1) = bfm_undump_Local_ptr(:, pJhead) ! OK because we stored it NJ majour.
 #endif
-#ifdef __interp_updates_m3mf
+#ifdef __interp_computes_m3mf
          intg_bfm      = intg_bfm + bfmhead(:, 1) * __brd_infl_r_bfm
 #endif
 
@@ -1199,7 +1197,7 @@ end subroutine __sub_name_compute
 
       ! NOTE: removing excess contribution for last HEAD (VERTEX)
       intg     = intg - brm(:, i_brm) * __vtx_infl_t
-#ifdef __interp_updates_m3mf
+#ifdef __interp_computes_m3mf
       intg_bfm = intg_bfm - bfmtail(:, 1) * __vtx_infl_t_bfm
 #endif
 
@@ -1249,7 +1247,7 @@ end subroutine __sub_name_compute
 #else
              call getBFM_msh(bfmtail, fi, fj)
 #endif
-#ifdef __interp_updates_m3mf
+#ifdef __interp_computes_m3mf
             intg_bfm = intg_bfm + bfmtail(:, 1) * __brd_infl_r_bfm
 #endif
             bfm_new_right(:, 1) = bfmtail(:, 1)
@@ -1288,7 +1286,7 @@ end subroutine __sub_name_compute
 #else
                    call getBFM_msh(bfmhead, fi_baseptJ, fj_baseptJ)
 #endif
-#ifdef __interp_updates_m3mf
+#ifdef __interp_computes_m3mf
                   intg_bfm = intg_bfm + bfmhead(:, 1) * __ctr_infl_r_bfm
 #endif
 
@@ -1364,7 +1362,7 @@ end subroutine __sub_name_compute
 #else
                 call getBFM_msh(bfmhead, fi_baseptJ, fj_baseptJ)
 #endif
-#ifdef __interp_updates_m3mf
+#ifdef __interp_computes_m3mf
                intg_bfm = intg_bfm + bfmhead(:, 1) * __vtx_infl_r_bfm
 #endif
 
@@ -1437,7 +1435,7 @@ end subroutine __sub_name_compute
 # else
                 call getBFM_msh(bfmhead, fi_baseptJ, fj_baseptJ)
 # endif
-# ifdef __interp_updates_m3mf
+# ifdef __interp_computes_m3mf
                intg_bfm = intg_bfm + bfmhead(:, 1) * __ctr_infl_r_bfm
 # endif
 
@@ -1505,7 +1503,7 @@ end subroutine __sub_name_compute
             !       there, it is a VERTEX point.
             !       However, it's the very last element in brm, we can remove it after.
             intg     = intg - brm(:, i_brm_shift) * __brd_infl_t
-#ifdef __interp_updates_m3mf
+#ifdef __interp_computes_m3mf
             intg_bfm = intg_bfm - bfmtail(:, 1) * __brd_infl_t_bfm
 #endif
 
@@ -1694,7 +1692,7 @@ end subroutine __sub_name_compute
          i_bfm_old     = i_bfm_old + 1
          bfmtail(:, 1) = bfm_undump_Local_ptr(:, i_bfm_old)
 #endif
-#ifdef __interp_updates_m3mf
+#ifdef __interp_computes_m3mf
          intg_bfm            = intg_bfm + bfmtail(:, 1) * __brd_infl_r_bfm
 #endif
          bfm_new_right(:, 1) = bfmtail(:, 1)
@@ -1732,7 +1730,7 @@ end subroutine __sub_name_compute
 #else
                 call getBFM_msh(bfmhead, fi_baseptJ, fj_baseptJ)
 #endif
-#ifdef __interp_updates_m3mf
+#ifdef __interp_computes_m3mf
                intg_bfm = intg_bfm + bfmhead(:, 1) * __ctr_infl_r_bfm
 #endif
 
@@ -1803,7 +1801,7 @@ end subroutine __sub_name_compute
             i_bfm_old     = i_bfm_old + 1
             bfmhead(:, 1) = bfm_undump_Local_ptr(:, i_bfm_old)
 #endif
-#ifdef __interp_updates_m3mf
+#ifdef __interp_computes_m3mf
             intg_bfm      = intg_bfm + bfmhead(:, 1) * ctr_infl_bfm
 #endif
 
@@ -1870,7 +1868,7 @@ end subroutine __sub_name_compute
          !       there, it is a VERTEX point.
          !       However, it's the very last element in brm, we can remove it after.
          intg     = intg - brm(:, i_brm_shift) * __brd_infl_t
-#ifdef __interp_updates_m3mf
+#ifdef __interp_computes_m3mf
          intg_bfm = intg_bfm - bfmtail(:, 1) * __brd_infl_t_bfm
 #endif
 
@@ -2075,11 +2073,11 @@ end subroutine __sub_name_compute
       ! removing overestimation for B point
       ! NOTE: should be stored at very last index!!
       intg = intg - brm(:, i_brm) * __vtx_infl_t
-# ifdef __interp_updates_m3mf
+# ifdef __interp_computes_m3mf
       intg_bfm = intg_bfm - bfmtail(:, 1) * __vtx_infl_t_bfm
 # endif
 #else
-# ifdef __interp_updates_m3mf
+# ifdef __interp_computes_m3mf
       pIcurr   = size(bfm_new_left, dim=2)
       intg_bfm = intg_bfm - bfm_new_left(:, 1) * __vtx_infl_r_bfm          ! removing overestimation for B point
       ! removing overestimation for last border points
@@ -2096,7 +2094,7 @@ end subroutine __sub_name_compute
 
 
       !$omp critical
-#ifdef __interp_updates_m3mf
+#ifdef __interp_computes_m3mf
       m3mf_msh_ptr_ = m3mf_msh_ptr_ + (intg_bfm * settings%i_bisp_sym_) ! update main BFM integral
 #endif
       m3mr_msh_ptr_ = m3mr_msh_ptr_ + (intg     * settings%i_bisp_sym_) ! update main BRM integral

@@ -29,8 +29,10 @@
 #endif
 
 
-#if (defined(BSA_USE_POD_DATA_CACHING)) || (!defined(_BSA_M3MF_ONLY_PREMESH))
-# define __interp_updates_m3mf
+#if (defined(BSA_USE_POD_DATA_CACHING)) || (!defined(BSA_M3MF_ONLY_PREMESH))
+# define __interp_computes_m3mf
+#else
+# define __compute_computes_m3mf
 #endif
 
 #if (defined(BSA_USE_POD_DATA_CACHING)) || (defined(_OPENMP))
