@@ -211,15 +211,21 @@ contains
 
 
    integer(int32) function openBFMDumpFiles_() result(iost)
+      use BsaLib_Utility, only: util_createDirIfNotExist
       logical :: iun_open
       integer :: iun, i
-
 #ifdef BSA_USE_OPTIMISED_OMP
-# define __fname bfm_dump_file_name_base_//char(i-1)
+      character(len = *), parameter :: dumpdir = ".dumpfiles/"
+      character(len = 32) :: fname = ""
       integer :: n
       n = max_num_omp_threads_
+
+      i = util_createDirIfNotExist(dumpdir)
+      if (0_bsa_int_t /= i) then
+         call bsa_Abort("Failed to create directory  '" // dumpdir // "'." )
+      endif
 #else
-# define __fname bfm_dump_file_name_base_
+      character(len = *), parameter :: fname = bfm_dump_file_name_base_
       integer, parameter :: n = 1
 #endif
       allocate(io_units_bfmdump(n))
@@ -234,7 +240,10 @@ contains
             if (.not. iun_open) exit
             iun = iun + 1
          enddo
-         iost = openBFMDumpFile_(iun, __fname)
+#ifdef BSA_USE_OPTIMISED_OMP
+         write(unit=fname, fmt='(2a, i0)') dumpdir, bfm_dump_file_name_base_, i
+#endif
+         iost = openBFMDumpFile_(iun, fname)
          if (0_int32 /= iost) return
          io_units_bfmdump(i) = iun
          if (i == n) exit
