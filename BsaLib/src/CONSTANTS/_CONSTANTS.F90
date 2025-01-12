@@ -213,3 +213,6 @@
    real(RK), parameter :: CST_3d2    = 3.0_RK / 2.0_RK
    real(RK), parameter :: CST_PIt3d2 = CST_PIGREC * CST_3d2
 
+   !> Max n. of allowed threads in BsaLib
+   integer(bsa_int_t), parameter :: BSA_MAX_N_THREADS = 1
+

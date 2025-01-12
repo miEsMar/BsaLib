@@ -78,6 +78,13 @@ contains
       if (0_bsa_int_t == max_num_omp_threads_) then
          call bsa_Abort("omp_get_max_threads()  has returned 0.")
       endif
+      if (max_num_omp_threads_ > BSA_MAX_N_THREADS) then
+         max_num_omp_threads_ = BSA_MAX_N_THREADS
+      endif
+# ifdef BSA_DEBUG
+         print '(1x, 2a, i5 /)', INFOMSG, &
+            "Max number of threads available:  ", max_num_omp_threads_
+# endif
 #endif
 
       if (0_int32 /= openBFMDumpFiles_()) then
