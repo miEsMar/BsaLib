@@ -15,15 +15,6 @@
 !! along with BsaLib.  If not, see <https://www.gnu.org/licenses/>.
 submodule(BsaLib_MTriangZone) BsaLib_MTriangZoneImpl
 
-! #ifndef _BSA_M3MF_ONLY_PREMESH
-! # define _BSA_M3MF_ONLY_PREMESH 0
-! #else
-! # if (_BSA_M3MF_ONLY_PREMESH != 0 && _BSA_M3MF_ONLY_PREMESH != 1)
-! #  undef _BSA_M3MF_ONLY_PREMESH
-! #  define _BSA_M3MF_ONLY_PREMESH 0
-! # endif
-! #endif
-
    use BsaLib_CONSTANTS
    use BsaLib_MPoint,    only: MPoint_t, getPointsDistance, assignment(=), operator(==)
    use BsaLib_MZone,     only: MZone_ID, DumpZone

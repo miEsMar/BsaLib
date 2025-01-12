@@ -15,15 +15,6 @@
 !! along with BsaLib.  If not, see <https://www.gnu.org/licenses/>.
 submodule(BsaLib_MRectZone) BsaLib_MRectZoneImpl
 
-! #ifndef _BSA_M3MF_ONLY_PREMESH
-! # define _BSA_M3MF_ONLY_PREMESH 0
-! #else
-! # if (_BSA_M3MF_ONLY_PREMESH != 0 && _BSA_M3MF_ONLY_PREMESH != 1)
-! #  undef _BSA_M3MF_ONLY_PREMESH
-! #  define _BSA_M3MF_ONLY_PREMESH 0
-! # endif
-! #endif
-
    use BsaLib_CONSTANTS
    use BsaLib_Data,     only: bsa_Abort, msh_max_zone_NPts
    use BsaLib_IO,       only: unit_debug_, io_units_bfmdump
