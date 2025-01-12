@@ -27,33 +27,41 @@ contains
       !! Creates a directory if it does not exists.
       !!
       character(len = *), intent(in)  :: dirname
-      character(len = :), allocatable :: cmd
+      character(len = 128) :: cmd
       integer(int32) :: ierr
 
+      ierr = 0
 #ifdef __INTEL_COMPILER
-      logical :: lflag
+      block
+         logical :: lflag
 
-      inquire(directory=dirname, exist=lflag)
-      if (lflag) then
-         print '(1x, 2a)', &
-            INFOMSG, 'Directory  "'//dirname//'"  already exists.'
-         return
-      endif
+         inquire(directory=dirname, exist=lflag)
+         if (lflag) then
+            print '(1x, 2a)', &
+               INFOMSG, 'Directory  "'//dirname//'"  already exists.'
+            return
+         endif
+      end block
 #endif
 
 #ifdef _WIN32
-      cmd = 'mkdir '//dirname(3:12)  ! BUG: fix this!!
+      cmd = dirname
+      do ierr = 1, len_trim(dirname)
+         if (cmd(ierr:ierr) == '/') then
+            cmd(ierr:ierr) = '\'
+         endif
+      enddo
+      cmd = 'if not exist "' // trim(cmd) // '"  mkdir  '// trim(cmd)
 #else
-      cmd = 'mkdir -p '//dirname
+      cmd = 'mkdir -p ' // dirname
 #endif
-      ierr = 0
-      call execute_command_line(cmd, .true., ierr)
+      call execute_command_line(cmd(1 : len_trim(cmd)), .true., ierr)
       if (ierr == 0) goto 10
 
       print '(1x, 3a)', &
          ERRMSG,  'Cannot create directory  ', trim(dirname)
 
-      10 if (allocated(cmd)) deallocate(cmd)
+      10 return
    end function
 
 
@@ -71,11 +79,6 @@ contains
       else
          id = (nj - 1) * tot + ni - int((nj*nj - nj) / 2., kind=int32)
       endif
-
-! #ifdef BSA_DEBUG
-!       print '(1x, a, 2i5, a, i5)', &
-!          '@BsaLib_Utility::util_getCorrVectIndex() : with (ni - nj) = ', ni, nj, ', result index  -> ', id 
-! #endif
    end function
 
 end module BsaLib_Utility
