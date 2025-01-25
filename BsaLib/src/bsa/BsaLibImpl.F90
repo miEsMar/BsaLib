@@ -1732,6 +1732,7 @@ contains
 #ifdef BSA_DEBUG
          99 continue
 #endif
+         if (allocated(sigm)) deallocate(sigm)
       end block
    end function computeSkewness_
 
