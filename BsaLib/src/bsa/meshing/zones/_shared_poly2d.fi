@@ -377,9 +377,9 @@ __mod_sub_compute subroutine __sub_name_compute(this)
 
 # ifndef __triang_zone__
 #  ifdef _BSA_M3MF_ONLY_PREMESH
-      intg = intg - bfm(:, i_bfm - this%nj_ + 1) * vtx_infl
-      intg = intg - sum(bfm(:, i_bfm - this%nj_ + 1 : i_bfm-1) * brd_infl, dim=2)
-      intg = intg - bfm(:, i_bfm) * vtx_infl
+      intg = intg -     bfm(:, i_bfm - this%nj_ + 1          ) * vtx_infl
+      intg = intg - sum(bfm(:, i_bfm - this%nj_ + 2 : i_bfm-1) * brd_infl, dim=2)
+      intg = intg -     bfm(:, i_bfm                         ) * vtx_infl
 #  endif
 # endif
 
@@ -2085,17 +2085,16 @@ end subroutine __sub_name_compute
       intg_bfm = intg_bfm - bfmtail(:, 1) * __vtx_infl_t_bfm
 # endif
 #else
+      ! removing overestimation for last border points
 # ifdef __update_m3mf__
       pIcurr   = size(bfm_new_left, dim=2)
-      intg_bfm = intg_bfm - bfm_new_left(:, 1) * __vtx_infl_r_bfm          ! removing overestimation for B point
-      ! removing overestimation for last border points
-      intg_bfm = intg_bfm - sum(bfm_new_left(:, 2+nipJ : nj-nipJ-1 : nipJ+1) * __brd_infl_r_bfm, dim=2)
-      intg_bfm = intg_bfm - bfm_new_left(:, pIcurr) * __vtx_infl_r_bfm     ! removing overestimation for End point
+      intg_bfm = intg_bfm -     bfm_new_left(:, 1                      ) * __vtx_infl_r_bfm  ! removing overestimation for B point
+      intg_bfm = intg_bfm - sum(bfm_new_left(:, nipJ+2:nj-nipJ-1:nipJ+1) * __brd_infl_r_bfm, dim=2)
+      intg_bfm = intg_bfm -     bfm_new_left(:, pIcurr                 ) * __vtx_infl_r_bfm  ! removing overestimation for End point
 # endif
-      intg = intg - brm(:, i_brm - nj + 1) * __vtx_infl_r   ! removing overestimation for B point
-      ! removing overestimation for last border points
+      intg = intg -     brm(:, i_brm - nj + 1            ) * __vtx_infl_r
       intg = intg - sum(brm(:, i_brm - nj + 2 : i_brm - 1) * __brd_infl_r, dim=2)
-      intg = intg - brm(:, i_brm) * __vtx_infl_r            ! removing overestimation for End point
+      intg = intg -     brm(:, i_brm                     ) * __vtx_infl_r
 #endif  ! __triang_zone__
 
       deallocate(bfm_new_left)
